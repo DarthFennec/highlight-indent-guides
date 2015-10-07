@@ -46,7 +46,7 @@ Package Name                    | Widths  | Hard Tabs   | Other Notes
 [hl-indent.el][3]               | Dynamic | Unsupported | Slow for large files
 [visual-indentation-mode.el][4] | Fixed   | Unsupported | Fast and slim
 
-[1](https://github.com/antonj/Highlight-Indentation-for-Emacs)
-[2](https://github.com/zk-phi/indent-guide)
-[3](https://github.com/ikirill/hl-indent)
-[4](https://github.com/skeeto/visual-indentation-mode)
+[1]: https://github.com/antonj/Highlight-Indentation-for-Emacs
+[2]: https://github.com/zk-phi/indent-guide
+[3]: https://github.com/ikirill/hl-indent
+[4]: https://github.com/skeeto/visual-indentation-mode
