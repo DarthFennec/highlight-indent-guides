@@ -21,7 +21,7 @@
 ;; SOFTWARE.
 ;;
 ;; Author: DarthFennec <darthfennec@derpymail.org>
-;; Version: 0.1
+;; Version: 0.2
 ;; URL: https://github.com/DarthFennec/highlight-indent-guides
 
 ;;; Commentary:
@@ -113,7 +113,9 @@
       (forward-char)
       (while (and guides (<= (car guides) (current-column)))
         (setq guides (cdr guides))
-        (setq face (not face))))))
+        (setq face (not face))))
+    (remove-text-properties (point) (line-end-position)
+                            '(font-lock-face nil rear-nonsticky nil))))
 
 (defun guide-region (start end)
   "Add or update indent guides for a given region in the buffer."
@@ -125,7 +127,9 @@
             (guides (get-prev-guides))
             (newguides nil))
         (while (and (not eof) (< (point) end))
-          (unless (looking-at "[[:space:]]*$")
+          (if (looking-at "[[:space:]]*$")
+              (remove-text-properties (point) (line-end-position)
+                                      '(font-lock-face nil rear-nonsticky nil))
             (setq guides (calc-guides guides (current-indentation)))
             (guide-line guides))
           (setq eof (< 0 (forward-line))))
