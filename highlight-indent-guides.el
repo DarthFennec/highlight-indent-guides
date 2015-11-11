@@ -21,7 +21,7 @@
 ;; SOFTWARE.
 ;;
 ;; Author: DarthFennec <darthfennec@derpymail.org>
-;; Version: 0.2
+;; Version: 0.3
 ;; URL: https://github.com/DarthFennec/highlight-indent-guides
 
 ;;; Commentary:
@@ -62,7 +62,9 @@
   :group 'highlight-indent-guides)
 
 (defun calc-guides (prev-guides indent)
-  "Calculate the new indent guides for a line."
+  "Calculate the indent guides for a line.
+PREV-GUIDES are the previous line's indent guides,
+and INDENT is this line's indent width."
   (let ((guides prev-guides))
     (while (and guides (< indent (car guides)))
       (setq guides (cdr guides)))
@@ -100,7 +102,7 @@
     (if (listp guides) guides nil)))
 
 (defun guide-line (guides)
-  "Draw the given indent guides on the current line."
+  "Draw the indent guides specified by GUIDES on the current line."
   (let ((guides (reverse guides))
         (face nil))
     (while guides
@@ -118,7 +120,7 @@
                             '(font-lock-face nil rear-nonsticky nil))))
 
 (defun guide-region (start end)
-  "Add or update indent guides for a given region in the buffer."
+  "Add or update indent guides in the buffer region from START to END."
   (with-silent-modifications
     (save-excursion
       (goto-char start)
@@ -142,7 +144,7 @@
           (setq eof (< 0 (forward-line))))))))
 
 (defun unguide-region (start end)
-  "Remove all indent guides from the buffer."
+  "Remove all indent guides in the buffer region from START to END."
   (with-silent-modifications
     (remove-text-properties
      start end '(font-lock-face nil rear-nonsticky nil))))
