@@ -21,7 +21,7 @@
 ;; SOFTWARE.
 ;;
 ;; Author: DarthFennec <darthfennec@derpymail.org>
-;; Version: 0.3
+;; Version: 0.4
 ;; URL: https://github.com/DarthFennec/highlight-indent-guides
 
 ;;; Commentary:
@@ -61,7 +61,7 @@
   "Face to highlight even indent levels."
   :group 'highlight-indent-guides)
 
-(defun calc-guides (prev-guides indent)
+(defun highlight-indent-guides--calc-guides (prev-guides indent)
   "Calculate the indent guides for a line.
 PREV-GUIDES are the previous line's indent guides,
 and INDENT is this line's indent width."
@@ -72,7 +72,7 @@ and INDENT is this line's indent width."
       (setq guides (cons indent guides)))
     guides))
 
-(defun get-guides ()
+(defun highlight-indent-guides--get-guides ()
   "Extract the indent guides from a line, by reading the faces."
   (save-excursion
     (let ((face (get-text-property (point) 'font-lock-face))
@@ -92,16 +92,16 @@ and INDENT is this line's indent width."
         (when (< 0 col) (setq guides (cons col guides))))
       (or invalid guides))))
 
-(defun get-prev-guides ()
+(defun highlight-indent-guides--get-prev-guides ()
   "Scan up the buffer to find a starting point to calculate guides from."
   (let ((guides t))
     (while (and (nlistp guides) (< 1 (line-number-at-pos)))
       (forward-line -1)
       (unless (looking-at "[[:space:]]*$")
-        (setq guides (get-guides))))
+        (setq guides (highlight-indent-guides--get-guides))))
     (if (listp guides) guides nil)))
 
-(defun guide-line (guides)
+(defun highlight-indent-guides--guide-line (guides)
   "Draw the indent guides specified by GUIDES on the current line."
   (let ((guides (reverse guides))
         (face nil))
@@ -119,31 +119,34 @@ and INDENT is this line's indent width."
     (remove-text-properties (point) (line-end-position)
                             '(font-lock-face nil rear-nonsticky nil))))
 
-(defun guide-region (start end)
+(defun highlight-indent-guides--guide-region (start end)
   "Add or update indent guides in the buffer region from START to END."
   (with-silent-modifications
     (save-excursion
       (goto-char start)
       (beginning-of-line)
       (let ((eof nil)
-            (guides (get-prev-guides))
+            (guides (highlight-indent-guides--get-prev-guides))
             (newguides nil))
         (while (and (not eof) (< (point) end))
           (if (looking-at "[[:space:]]*$")
               (remove-text-properties (point) (line-end-position)
                                       '(font-lock-face nil rear-nonsticky nil))
-            (setq guides (calc-guides guides (current-indentation)))
-            (guide-line guides))
+            (setq guides (highlight-indent-guides--calc-guides
+                          guides (current-indentation)))
+            (highlight-indent-guides--guide-line guides))
           (setq eof (< 0 (forward-line))))
         (while (and (not eof) (not (eq newguides t))
                     (not (equal guides newguides)))
           (unless (looking-at "[[:space:]]*$")
-            (setq guides (calc-guides guides (current-indentation)))
-            (setq newguides (get-guides))
-            (unless (equal guides newguides) (guide-line guides)))
+            (setq guides (highlight-indent-guides--calc-guides
+                          guides (current-indentation)))
+            (setq newguides (highlight-indent-guides--get-guides))
+            (unless (equal guides newguides)
+              (highlight-indent-guides--guide-line guides)))
           (setq eof (< 0 (forward-line))))))))
 
-(defun unguide-region (start end)
+(defun highlight-indent-guides--unguide-region (start end)
   "Remove all indent guides in the buffer region from START to END."
   (with-silent-modifications
     (remove-text-properties
@@ -154,9 +157,9 @@ and INDENT is this line's indent width."
   "Display indent guides in a buffer."
   nil nil nil
   (if highlight-indent-guides-mode
-      (jit-lock-register 'guide-region)
-    (jit-lock-unregister 'guide-region)
-    (unguide-region (point-min) (point-max))))
+      (jit-lock-register 'highlight-indent-guides--guide-region)
+    (jit-lock-unregister 'highlight-indent-guides--guide-region)
+    (highlight-indent-guides--unguide-region (point-min) (point-max))))
 
 (provide 'highlight-indent-guides)
 
