@@ -1,3 +1,5 @@
+[![MELPA](https://melpa.org/packages/highlight-indent-guides-badge.svg)](https://melpa.org/#/highlight-indent-guides)
+
 highlight-indent-guides.el
 ==========================
 
@@ -12,14 +14,21 @@ Screenshot
 
 ![highlight-indent-guides screenshot](highlight-indent-guides-screenshot.png)
 
+Installation
+------------
+
+To install from [Melpa](http://melpa.org/#/getting-started), use <kbd>M-x
+package-install RET highlight-indent-guides RET</kbd>. Otherwise, download
+`highlight-indent-guides.el` and put it in your load path.
+
 Usage
 -----
 
-To install, put the script in your `load-path`, and require it:
+Require it:
 
 `(require 'highlight-indent-guides)`
 
-Then, do `M-x highlight-indent-guides-mode` to enable it. To enable it
+Then, do <kbd>M-x highlight-indent-guides-mode</kbd> to enable it. To enable it
 automatically in most programming modes, use the following:
 
 `(add-hook 'prog-mode-hook 'highlight-indent-guides-mode)`
