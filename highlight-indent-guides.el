@@ -21,7 +21,7 @@
 ;; SOFTWARE.
 ;;
 ;; Author: DarthFennec <darthfennec@derpymail.org>
-;; Version: 0.4.1
+;; Version: 0.5
 ;; URL: https://github.com/DarthFennec/highlight-indent-guides
 
 ;;; Commentary:
@@ -75,14 +75,13 @@ and INDENT is this line's indent width."
 (defun highlight-indent-guides--get-guides ()
   "Extract the indent guides from a line, by reading the faces."
   (save-excursion
-    (let ((face (get-text-property (point) 'font-lock-face))
+    (let ((face (get-text-property (point) 'highlight-indent-guides-prop))
           (invalid nil)
           (newface nil)
           (guides nil))
       (while (and (not invalid) (looking-at "[[:space:]]"))
-        (setq newface (get-text-property (point) 'font-lock-face))
-        (unless (or (eq newface 'highlight-indent-guides-odd-face)
-                    (eq newface 'highlight-indent-guides-even-face))
+        (setq newface (get-text-property (point) 'highlight-indent-guides-prop))
+        (unless (or (eq newface 'odd) (eq newface 'even))
           (setq invalid t))
         (unless (equal face newface)
           (setq guides (cons (current-column) guides))
@@ -109,16 +108,13 @@ and INDENT is this line's indent width."
     (while guides
       (add-text-properties
        (point) (1+ (point))
-       `(font-lock-face
-         ,(if face 'highlight-indent-guides-odd-face
-            'highlight-indent-guides-even-face)
-         rear-nonsticky t))
+       `(highlight-indent-guides-prop ,(if face 'odd 'even)))
       (forward-char)
       (while (and guides (<= (car guides) (current-column)))
         (setq guides (cdr guides))
         (setq face (not face))))
     (remove-text-properties (point) (line-end-position)
-                            '(font-lock-face nil rear-nonsticky nil))))
+                            '(highlight-indent-guides-prop nil))))
 
 (defun highlight-indent-guides--guide-region (start end)
   "Add or update indent guides in the buffer region from START to END."
@@ -133,7 +129,7 @@ and INDENT is this line's indent width."
           (if (or (let ((s (syntax-ppss))) (or (nth 3 s) (nth 4 s)))
                   (looking-at "[[:space:]]*$"))
               (remove-text-properties (point) (line-end-position)
-                                      '(font-lock-face nil rear-nonsticky nil))
+                                      '(highlight-indent-guides-prop nil))
             (setq guides (highlight-indent-guides--calc-guides
                           guides (current-indentation)))
             (highlight-indent-guides--guide-line guides))
@@ -147,22 +143,51 @@ and INDENT is this line's indent width."
             (setq newguides (highlight-indent-guides--get-guides))
             (unless (equal guides newguides)
               (highlight-indent-guides--guide-line guides)))
-          (setq eof (< 0 (forward-line))))))))
+          (setq eof (< 0 (forward-line))))
+        (font-lock-fontify-region start (point))))))
 
 (defun highlight-indent-guides--unguide-region (start end)
   "Remove all indent guides in the buffer region from START to END."
   (with-silent-modifications
-    (remove-text-properties
-     start end '(font-lock-face nil rear-nonsticky nil))))
+    (remove-text-properties start end '(highlight-indent-guides-prop nil))))
+
+(defun highlight-indent-guides--keyword-matcher (limit)
+  "A font-lock-keywords matcher, which searches for indent guides between the
+point and LIMIT, so that they can be properly highlighted."
+  (let ((match (point))
+        (prop 'highlight-indent-guides-prop)
+        odd even end oddm evenm endm)
+    (while (and (< match limit) (null even))
+      (if (not (eq 'even (get-text-property match prop)))
+          (setq match (next-single-property-change match prop nil limit))
+        (setq even match)
+        (setq match (next-single-property-change match prop nil limit))
+        (setq odd match)
+        (when (eq 'odd (get-text-property match prop))
+          (setq match (next-single-property-change match prop nil limit)))
+        (setq end match)
+        (setq evenm (copy-marker even))
+        (setq oddm (copy-marker odd))
+        (setq endm (copy-marker end))
+        (set-match-data (list evenm endm evenm oddm oddm endm))
+        (goto-char end)))
+    end))
 
 ;;;###autoload
 (define-minor-mode highlight-indent-guides-mode
   "Display indent guides in a buffer."
   nil nil nil
-  (if highlight-indent-guides-mode
-      (jit-lock-register 'highlight-indent-guides--guide-region)
-    (jit-lock-unregister 'highlight-indent-guides--guide-region)
-    (highlight-indent-guides--unguide-region (point-min) (point-max))))
+  (let ((keywords
+         '((highlight-indent-guides--keyword-matcher
+           (1 'highlight-indent-guides-even-face t)
+           (2 'highlight-indent-guides-odd-face t)))))
+    (if highlight-indent-guides-mode
+        (progn
+          (font-lock-add-keywords nil keywords)
+          (jit-lock-register 'highlight-indent-guides--guide-region))
+      (font-lock-remove-keywords nil keywords)
+      (jit-lock-unregister 'highlight-indent-guides--guide-region)
+      (highlight-indent-guides--unguide-region (point-min) (point-max)))))
 
 (provide 'highlight-indent-guides)
 
