@@ -21,7 +21,7 @@
 ;; SOFTWARE.
 ;;
 ;; Author: DarthFennec <darthfennec@derpymail.org>
-;; Version: 0.4
+;; Version: 0.4.1
 ;; URL: https://github.com/DarthFennec/highlight-indent-guides
 
 ;;; Commentary:
@@ -97,7 +97,8 @@ and INDENT is this line's indent width."
   (let ((guides t))
     (while (and (nlistp guides) (< 1 (line-number-at-pos)))
       (forward-line -1)
-      (unless (looking-at "[[:space:]]*$")
+      (unless (or (let ((s (syntax-ppss))) (or (nth 3 s) (nth 4 s)))
+                  (looking-at "[[:space:]]*$"))
         (setq guides (highlight-indent-guides--get-guides))))
     (if (listp guides) guides nil)))
 
@@ -129,7 +130,8 @@ and INDENT is this line's indent width."
             (guides (highlight-indent-guides--get-prev-guides))
             (newguides nil))
         (while (and (not eof) (< (point) end))
-          (if (looking-at "[[:space:]]*$")
+          (if (or (let ((s (syntax-ppss))) (or (nth 3 s) (nth 4 s)))
+                  (looking-at "[[:space:]]*$"))
               (remove-text-properties (point) (line-end-position)
                                       '(font-lock-face nil rear-nonsticky nil))
             (setq guides (highlight-indent-guides--calc-guides
@@ -138,7 +140,8 @@ and INDENT is this line's indent width."
           (setq eof (< 0 (forward-line))))
         (while (and (not eof) (not (eq newguides t))
                     (not (equal guides newguides)))
-          (unless (looking-at "[[:space:]]*$")
+          (unless (or (let ((s (syntax-ppss))) (or (nth 3 s) (nth 4 s)))
+                      (looking-at "[[:space:]]*$"))
             (setq guides (highlight-indent-guides--calc-guides
                           guides (current-indentation)))
             (setq newguides (highlight-indent-guides--get-guides))
