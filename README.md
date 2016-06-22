@@ -3,16 +3,26 @@
 highlight-indent-guides.el
 ==========================
 
-This minor mode highlights indentation levels using a pair of alternating faces.
-Indent widths are dynamically discovered, which means this correctly highlights
-in any mode, regardless of indent width, even in languages with non-uniform
-indentation such as Haskell. This mode works properly around hard tabs and mixed
-indentation, and it behaves well in large buffers.
+This minor mode highlights indentation levels via `font-lock`. Indent widths are
+dynamically discovered, which means this correctly highlights in any mode,
+regardless of indent width, even in languages with non-uniform indentation such
+as Haskell. This mode works properly around hard tabs and mixed indentation, and
+it behaves well in large buffers.
 
-Screenshot
-----------
+Screenshots
+-----------
 
-![highlight-indent-guides screenshot](highlight-indent-guides-screenshot.png)
+![fill method screenshot](highlight-indent-guides-fill-screenshot.png)
+
+`(setq highlight-indent-guides-method 'fill)`
+
+![column method screenshot](highlight-indent-guides-column-screenshot.png)
+
+`(setq highlight-indent-guides-method 'column)`
+
+![character method screenshot](highlight-indent-guides-character-screenshot.png)
+
+`(setq highlight-indent-guides-method 'character)`
 
 Installation
 ------------
@@ -36,14 +46,47 @@ automatically in most programming modes, use the following:
 Configuration
 -------------
 
-To change the colors used for highlighting, customize
-`highlight-indent-guides-odd-face` and `highlight-indent-guides-even-face`.
+This mode supports three display methods. To change the display method,
+customize `highlight-indent-guides-method`, and set it to one of the following:
+- `fill`: The default method. All whitespace used for indentation is
+  highlighted. The color of each level of indentation alternates between
+  `highlight-indent-guides-odd-face` and `highlight-indent-guides-even-face`.
+- `column`: Like `fill`, but only the first column of each level of indentation
+  is highlighted.
+- `character`: The first column of each level of indentation is drawn using a
+  column of characters. The character to draw with is specified by
+  `highlight-indent-guides-character`, and it is drawn using the face
+  `highlight-indent-guides-character-face`.
+
+To change the colors used for highlighting in the `fill` or `column` methods,
+customize `highlight-indent-guides-odd-face` and
+`highlight-indent-guides-even-face`.
 
 For example:
 
 `(set-face-background 'highlight-indent-guides-odd-face "darkgray")`
 
 `(set-face-background 'highlight-indent-guides-even-face "dimgray")`
+
+To change the display of the indent guides in the `character` method, customize
+`highlight-indent-guides-character` and
+`highlight-indent-guides-character-face`.
+
+For example:
+
+`(setq highlight-indent-guides-character ?\|)`
+
+`(set-face-foreground 'highlight-indent-guides-character-face "darkgray")`
+
+Limitations
+-----------
+
+To display the `character` method guides, and to highlight tab characters
+correctly, this mode controls the `display` text property of some characters via
+`font-lock`. Therefore, this mode may or may not play well with other modes that
+use the `display` text property. This mode may also interfere with modes that
+use a display table to modify how whitespace is drawn, e.g., the `whitespace`
+minor mode.
 
 Alternatives
 ------------
