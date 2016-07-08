@@ -21,7 +21,7 @@
 ;; SOFTWARE.
 ;;
 ;; Author: DarthFennec <darthfennec@derpymail.org>
-;; Version: 0.6.1
+;; Version: 0.6.2
 ;; URL: https://github.com/DarthFennec/highlight-indent-guides
 
 ;;; Commentary:
@@ -354,7 +354,8 @@ as a `font-lock-keywords' face definition."
       (font-lock-remove-keywords nil column-method-keywords)
       (font-lock-remove-keywords nil character-method-keywords)
       (jit-lock-unregister 'highlight-indent-guides--guide-region)
-      (highlight-indent-guides--unguide-region (point-min) (point-max)))))
+      (highlight-indent-guides--unguide-region (point-min) (point-max))
+      (font-lock-fontify-buffer))))
 
 (provide 'highlight-indent-guides)
 
