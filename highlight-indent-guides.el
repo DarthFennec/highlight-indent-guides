@@ -21,7 +21,7 @@
 ;; SOFTWARE.
 ;;
 ;; Author: DarthFennec <darthfennec@derpymail.org>
-;; Version: 0.6
+;; Version: 0.6.1
 ;; URL: https://github.com/DarthFennec/highlight-indent-guides
 
 ;;; Commentary:
@@ -112,7 +112,7 @@ and INDENT is this line's indent width."
             (setq guides (cons (current-column) guides)))
           (dolist (segment nseg)
             (setq guides (cons (+ segment (current-column)) guides))
-            (setq nface (case nface (odd 'even) (even 'odd))))
+            (setq nface (pcase nface (`odd 'even) (`even 'odd))))
           (setq face nface)
           (setq seg nseg))
         (forward-char))
@@ -206,8 +206,8 @@ spans multiple levels of indentation, it may return something else. This
 function will always return `odd', `even', or nil."
   (let* ((propval (get-text-property pos 'highlight-indent-guides-prop))
          (segval (get-text-property pos 'highlight-indent-guides-segment))
-         (seginv (oddp (length segval))))
-    (when seginv (setq propval (case propval (odd 'even) (even 'odd))))
+         (seginv (eq 1 (logand 1 (length segval)))))
+    (when seginv (setq propval (pcase propval (`odd 'even) (`even 'odd))))
     propval))
 
 (defun highlight-indent-guides--column-can-highlight (pos)
@@ -269,8 +269,8 @@ indentation characters in alternating colors. This is meant to be used as a
          (evenface 'highlight-indent-guides-even-face)
          (prop (get-text-property start 'highlight-indent-guides-prop))
          (segs (get-text-property start 'highlight-indent-guides-segment))
-         (face (case prop (even evenface) (odd oddface)))
-         (opface (case prop (even oddface) (odd evenface)))
+         (face (pcase prop (`even evenface) (`odd oddface)))
+         (opface (pcase prop (`even oddface) (`odd evenface)))
          cwidth segstart segend showstr)
     (if (null segs) face
       (setq cwidth (highlight-indent-guides--char-width start))
@@ -290,8 +290,8 @@ as a `font-lock-keywords' face definition."
          (evenface 'highlight-indent-guides-even-face)
          (prop (get-text-property start 'highlight-indent-guides-prop))
          (segs (get-text-property start 'highlight-indent-guides-segment))
-         (face (case prop (even evenface) (odd oddface)))
-         (opface (case prop (even oddface) (odd evenface)))
+         (face (pcase prop (`even evenface) (`odd oddface)))
+         (opface (pcase prop (`even oddface) (`odd evenface)))
          cwidth showstr altface)
     (if (and (null segs) (eq ?\s (char-after start))) face
       (setq cwidth (highlight-indent-guides--char-width start))
@@ -344,10 +344,10 @@ as a `font-lock-keywords' face definition."
           (add-to-list 'font-lock-extra-managed-props 'display)
           (font-lock-add-keywords
            nil
-           (case highlight-indent-guides-method
-             (fill fill-method-keywords)
-             (column column-method-keywords)
-             (character character-method-keywords)))
+           (pcase highlight-indent-guides-method
+             (`fill fill-method-keywords)
+             (`column column-method-keywords)
+             (`character character-method-keywords)))
           (jit-lock-register 'highlight-indent-guides--guide-region))
       (delete 'display 'font-lock-extra-managed-props)
       (font-lock-remove-keywords nil fill-method-keywords)
