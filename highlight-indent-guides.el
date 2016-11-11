@@ -21,7 +21,8 @@
 ;; SOFTWARE.
 ;;
 ;; Author: DarthFennec <darthfennec@derpymail.org>
-;; Version: 0.6.2
+;; Version: 0.6.3
+;; Package-Requires: ((emacs "24"))
 ;; URL: https://github.com/DarthFennec/highlight-indent-guides
 
 ;;; Commentary:
@@ -102,10 +103,10 @@ and INDENT is this line's indent width."
 (defun highlight-indent-guides--get-guides ()
   "Extract the indent guides from a line, by reading the text properties."
   (save-excursion
-    (let (face seg nface nseg invalid guides)
+    (let (prop face seg nface nseg invalid guides)
       (while (and (not invalid) (looking-at "[[:space:]]"))
-        (setq nface (get-text-property (point) 'highlight-indent-guides-prop))
-        (setq nseg (get-text-property (point) 'highlight-indent-guides-segment))
+        (setq prop (get-text-property (point) 'highlight-indent-guides-prop))
+        (setq nface (car prop) nseg (nth 1 prop))
         (unless (or (eq nface 'odd) (eq nface 'even)) (setq invalid t))
         (unless (or invalid (and (equal face nface) (equal seg nseg)))
           (when (and face (not (equal face nface)))
@@ -113,8 +114,7 @@ and INDENT is this line's indent width."
           (dolist (segment nseg)
             (setq guides (cons (+ segment (current-column)) guides))
             (setq nface (pcase nface (`odd 'even) (`even 'odd))))
-          (setq face nface)
-          (setq seg nseg))
+          (setq face nface seg nseg))
         (forward-char))
       (let ((col (current-column)))
         (when (< 0 col) (setq guides (cons col guides))))
@@ -132,33 +132,39 @@ and INDENT is this line's indent width."
 
 (defun highlight-indent-guides--guide-line (guides)
   "Draw the indent guides specified by GUIDES on the current line."
-  (let ((guides (reverse guides))
-        (column (current-column))
-        (currpt (point))
-        currcol currface nextface props face)
-    (while guides
-      (setq props nil)
-      (setq currcol column)
-      (setq currface (if face 'odd 'even))
-      (setq nextface (if face 'even 'odd))
-      (setq currpt (point))
-      (forward-char)
-      (setq column (current-column))
-      (while (and guides (< (car guides) column))
-        (setq props (cons (- (car guides) currcol) props))
-        (setq guides (cdr guides))
-        (setq face (not face)))
-      (setq props (reverse props))
-      (when (and props (zerop (car props)))
-        (setq props (cdr props))
-        (setq currface nextface))
-      (add-text-properties
-       currpt (1+ currpt)
-       `(highlight-indent-guides-prop
-         ,currface ,@(when props `(highlight-indent-guides-segment ,props)))))
-    (remove-text-properties
-     currpt (line-end-position)
-     '(highlight-indent-guides-prop nil highlight-indent-guides-segment nil))))
+  (unless (equal guides (highlight-indent-guides--get-guides))
+    (let ((guides (reverse guides))
+          (column (current-column))
+          (currpt (point))
+          (starter t)
+          currcol currface nextface props oldprop newprop face)
+      (while guides
+        (setq props nil)
+        (setq currcol column)
+        (setq currface (if face 'odd 'even))
+        (setq nextface (if face 'even 'odd))
+        (setq currpt (point))
+        (forward-char)
+        (setq column (current-column))
+        (while (and guides (< (car guides) column))
+          (setq props (cons (- (car guides) currcol) props))
+          (setq guides (cdr guides))
+          (setq face (not face)))
+        (setq props (reverse props))
+        (when (and props (zerop (car props)))
+          (setq props (cdr props))
+          (setq currface nextface)
+          (setq starter t))
+        (setq oldprop (get-text-property currpt 'highlight-indent-guides-prop))
+        (setq newprop (list currface props starter (- column currcol) nil))
+        (when (and oldprop
+                   (equal (seq-subseq newprop 0 4) (seq-subseq oldprop 0 4)))
+          (setcar (cddr (cddr newprop)) (nth 4 oldprop)))
+        (add-text-properties
+         currpt (1+ currpt) `(highlight-indent-guides-prop ,newprop))
+        (setq starter nil))
+      (remove-text-properties
+       currpt (line-end-position) '(highlight-indent-guides-prop nil)))))
 
 (defun highlight-indent-guides--guide-region (start end)
   "Add or update indent guides in the buffer region from START to END."
@@ -172,9 +178,7 @@ and INDENT is this line's indent width."
           (if (or (let ((s (syntax-ppss))) (or (nth 3 s) (nth 4 s)))
                   (looking-at "[[:space:]]*$"))
               (remove-text-properties
-               (point) (line-end-position)
-               '(highlight-indent-guides-prop
-                 nil highlight-indent-guides-segment nil))
+               (point) (line-end-position) '(highlight-indent-guides-prop nil))
             (setq guides (highlight-indent-guides--calc-guides
                           guides (current-indentation)))
             (highlight-indent-guides--guide-line guides))
@@ -194,30 +198,7 @@ and INDENT is this line's indent width."
 (defun highlight-indent-guides--unguide-region (start end)
   "Remove all indent guides in the buffer region from START to END."
   (with-silent-modifications
-    (remove-text-properties
-     start end
-     '(highlight-indent-guides-prop nil highlight-indent-guides-segment nil))))
-
-(defun highlight-indent-guides--terminal-prop (pos)
-  "Determine the indent level of the last column of the character at POS.
-If the character is a space, this will always return the character's
-`highlight-indent-guides-prop' text property. If the character is a tab that
-spans multiple levels of indentation, it may return something else. This
-function will always return `odd', `even', or nil."
-  (let* ((propval (get-text-property pos 'highlight-indent-guides-prop))
-         (segval (get-text-property pos 'highlight-indent-guides-segment))
-         (seginv (eq 1 (logand 1 (length segval)))))
-    (when seginv (setq propval (pcase propval (`odd 'even) (`even 'odd))))
-    propval))
-
-(defun highlight-indent-guides--column-can-highlight (pos)
-  "Determine whether the character at POS should be highlighted."
-  (let* ((propval (get-text-property pos 'highlight-indent-guides-prop))
-         (segval (get-text-property pos 'highlight-indent-guides-segment)))
-    (and (or (eq propval 'odd) (eq propval 'even))
-         (or segval (<= pos (point-min))
-             (not (eq (highlight-indent-guides--terminal-prop (1- pos))
-                      propval))))))
+    (remove-text-properties start end '(highlight-indent-guides-prop nil))))
 
 (defun highlight-indent-guides--fill-keyword-matcher (limit)
   "Search for indent guides between the point and LIMIT.
@@ -225,11 +206,11 @@ Find the next character that is part of any indentation. This is meant to be
 used as a `font-lock-keywords' matcher."
   (let* ((pos (point))
          (prop 'highlight-indent-guides-prop)
-         (propval (get-text-property pos prop)))
-    (while (and (not (eq propval 'odd)) (not (eq propval 'even)) (< pos limit))
+         (face (car (get-text-property pos prop))))
+    (while (and (not (eq face 'odd)) (not (eq face 'even)) (< pos limit))
       (setq pos (next-single-property-change pos prop nil limit))
-      (setq propval (get-text-property pos prop)))
-    (when (or (eq propval 'odd) (eq propval 'even))
+      (setq face (car (get-text-property pos prop))))
+    (when (< pos limit)
       (set-match-data (list (copy-marker pos) (copy-marker (1+ pos))))
       (goto-char (1+ pos)))))
 
@@ -240,91 +221,98 @@ This is meant to be used as a `font-lock-keywords' matcher."
   (let* ((pos (point))
          (prop 'highlight-indent-guides-prop)
          (propval (get-text-property pos prop)))
-    (while (and (< pos limit)
-                (not (highlight-indent-guides--column-can-highlight pos)))
+    (while (and (not (and (or (eq (car propval) 'odd) (eq (car propval) 'even))
+                          (or (nth 2 propval) (nth 1 propval)))) (< pos limit))
       (setq pos (1+ pos))
       (setq propval (get-text-property pos prop))
-      (while (and (< pos limit)
-                  (not (eq propval 'odd)) (not (eq propval 'even)))
+      (while (and (< pos limit) (not (eq (car propval) 'odd))
+                  (not (eq (car propval) 'even)))
         (setq pos (next-single-property-change pos prop nil limit))
         (setq propval (get-text-property pos prop))))
-    (when (highlight-indent-guides--column-can-highlight pos)
+    (when (< pos limit)
       (set-match-data (list (copy-marker pos) (copy-marker (1+ pos))))
       (goto-char (1+ pos)))))
 
-(defun highlight-indent-guides--char-width (pos)
-  "Find the true display width of the character at POS."
-  (save-excursion
-    (goto-char pos)
-    (let ((col (current-column)))
-      (forward-char)
-      (- (current-column) col))))
+(defmacro highlight-indent-guides--cache-highlight (type prop &rest body)
+  "Memoize the highlighter results in the character's properties.
+If a cached result with the right TYPE (`fill', `column', or `character') is
+contained in PROP, return that result instead of calculating a new one.
+Otherwise, calculate a new result by running BODY, cache it in PROP, and return
+it."
+  `(if (eq ,type (car (nth 4 ,prop))) (cdr (nth 4 ,prop))
+     (let ((result (progn ,@body)))
+       (setcar (cddr (cddr ,prop)) (cons ,type result))
+       result)))
 
 (defun highlight-indent-guides--fill-highlighter ()
   "Apply highlighting to the indentation.
 Return highlighting information for the character at START. Highlights all
 indentation characters in alternating colors. This is meant to be used as a
 `font-lock-keywords' face definition."
-  (let* ((oddface 'highlight-indent-guides-odd-face)
-         (evenface 'highlight-indent-guides-even-face)
-         (prop (get-text-property start 'highlight-indent-guides-prop))
-         (segs (get-text-property start 'highlight-indent-guides-segment))
-         (face (pcase prop (`even evenface) (`odd oddface)))
-         (opface (pcase prop (`even oddface) (`odd evenface)))
-         cwidth segstart segend showstr)
-    (if (null segs) face
-      (setq cwidth (highlight-indent-guides--char-width start))
-      (setq showstr (make-string cwidth ?\s))
-      (while segs
-        (setq segstart (pop segs))
-        (setq segend (if segs (pop segs) cwidth))
-        (add-text-properties segstart segend `(face ,opface) showstr))
-      `(face ,face display ,showstr))))
+  (let ((prop (get-text-property start 'highlight-indent-guides-prop)))
+    (highlight-indent-guides--cache-highlight
+     'fill prop
+     (let* ((oddface 'highlight-indent-guides-odd-face)
+            (evenface 'highlight-indent-guides-even-face)
+            (faceval (car prop)) (segs (nth 1 prop)) (cwidth (nth 3 prop))
+            (face (pcase faceval (`even evenface) (`odd oddface)))
+            (opface (pcase faceval (`even oddface) (`odd evenface)))
+            segstart segend showstr)
+       (if (null segs) face
+         (setq showstr (make-string cwidth ?\s))
+         (while segs
+           (setq segstart (pop segs))
+           (setq segend (if segs (pop segs) cwidth))
+           (add-text-properties segstart segend `(face ,opface) showstr))
+         `(face ,face display ,showstr))))))
 
 (defun highlight-indent-guides--column-highlighter ()
   "Apply highlighting to the indentation.
 Return highlighting information for the character at START. Highlights the first
 column of each indentation level in alternating colors. This is meant to be used
 as a `font-lock-keywords' face definition."
-  (let* ((oddface 'highlight-indent-guides-odd-face)
-         (evenface 'highlight-indent-guides-even-face)
-         (prop (get-text-property start 'highlight-indent-guides-prop))
-         (segs (get-text-property start 'highlight-indent-guides-segment))
-         (face (pcase prop (`even evenface) (`odd oddface)))
-         (opface (pcase prop (`even oddface) (`odd evenface)))
-         cwidth showstr altface)
-    (if (and (null segs) (eq ?\s (char-after start))) face
-      (setq cwidth (highlight-indent-guides--char-width start))
-      (setq showstr (make-string cwidth ?\s))
-      (unless (eq prop (highlight-indent-guides--terminal-prop (1- start)))
-        (add-text-properties 0 1 `(face ,face) showstr))
-      (dolist (seg segs)
-        (if altface (add-text-properties seg (1+ seg) `(face ,face) showstr)
-          (add-text-properties seg (1+ seg) `(face ,opface) showstr))
-        (setq altface (not altface)))
-      `(face nil display ,showstr))))
+  (let ((prop (get-text-property start 'highlight-indent-guides-prop)))
+    (highlight-indent-guides--cache-highlight
+     'column prop
+     (let* ((oddface 'highlight-indent-guides-odd-face)
+            (evenface 'highlight-indent-guides-even-face)
+            (faceval (car prop)) (segs (nth 1 prop))
+            (starter (nth 2 prop)) (cwidth (nth 3 prop))
+            (face (pcase faceval (`even evenface) (`odd oddface)))
+            (opface (pcase faceval (`even oddface) (`odd evenface)))
+            showstr altface)
+       (if (and (null segs) (eq cwidth 1)) face
+         (setq showstr (make-string cwidth ?\s))
+         (when starter (add-text-properties 0 1 `(face ,face) showstr))
+         (dolist (seg segs)
+           (if altface (add-text-properties seg (1+ seg) `(face ,face) showstr)
+             (add-text-properties seg (1+ seg) `(face ,opface) showstr))
+           (setq altface (not altface)))
+         `(face nil display ,showstr))))))
 
 (defun highlight-indent-guides--character-highlighter ()
   "Apply highlighting to the indentation.
 Return highlighting information for the character at START. Displays a character
 in place of the first column of each indentation level. This is meant to be used
 as a `font-lock-keywords' face definition."
-  (let* ((face 'highlight-indent-guides-character-face)
-         (segs (get-text-property start 'highlight-indent-guides-segment))
-         cwidth showstr)
-    (if (and (null segs) (eq ?\s (char-after start)))
-        `(face ,face display
-               ,(char-to-string highlight-indent-guides-character))
-      (setq cwidth (highlight-indent-guides--char-width start))
-      (setq showstr (make-string cwidth ?\s))
-      (unless (eq (get-text-property start 'highlight-indent-guides-prop)
-                  (highlight-indent-guides--terminal-prop (1- start)))
-        (aset showstr 0 highlight-indent-guides-character)
-        (add-text-properties 0 1 `(face ,face) showstr))
-      (dolist (seg segs)
-        (aset showstr seg highlight-indent-guides-character)
-        (add-text-properties seg (1+ seg) `(face ,face) showstr))
-      `(face nil display ,showstr))))
+  (let ((prop (get-text-property start 'highlight-indent-guides-prop)))
+    (highlight-indent-guides--cache-highlight
+     'character prop
+     (let* ((face 'highlight-indent-guides-character-face)
+            (faceval (car prop)) (segs (nth 1 prop))
+            (starter (nth 2 prop)) (cwidth (nth 3 prop))
+            showstr)
+       (if (and (null segs) (eq cwidth 1))
+           `(face ,face display
+                  ,(char-to-string highlight-indent-guides-character))
+         (setq showstr (make-string cwidth ?\s))
+         (when starter
+           (aset showstr 0 highlight-indent-guides-character)
+           (add-text-properties 0 1 `(face ,face) showstr))
+         (dolist (seg segs)
+           (aset showstr seg highlight-indent-guides-character)
+           (add-text-properties seg (1+ seg) `(face ,face) showstr))
+         `(face nil display ,showstr))))))
 
 ;;;###autoload
 (define-minor-mode highlight-indent-guides-mode
@@ -355,7 +343,7 @@ as a `font-lock-keywords' face definition."
       (font-lock-remove-keywords nil character-method-keywords)
       (jit-lock-unregister 'highlight-indent-guides--guide-region)
       (highlight-indent-guides--unguide-region (point-min) (point-max))
-      (font-lock-fontify-buffer))))
+      (font-lock-flush))))
 
 (provide 'highlight-indent-guides)
 
