@@ -21,7 +21,7 @@
 ;; SOFTWARE.
 ;;
 ;; Author: DarthFennec <darthfennec@derpymail.org>
-;; Version: 0.6.3
+;; Version: 0.6.4
 ;; Package-Requires: ((emacs "24"))
 ;; URL: https://github.com/DarthFennec/highlight-indent-guides
 
@@ -132,7 +132,10 @@ and INDENT is this line's indent width."
 
 (defun highlight-indent-guides--guide-line (guides)
   "Draw the indent guides specified by GUIDES on the current line."
-  (unless (equal guides (highlight-indent-guides--get-guides))
+  (if (equal guides (highlight-indent-guides--get-guides))
+      (remove-text-properties
+       (+ (line-beginning-position) (current-indentation))
+       (line-end-position) '(highlight-indent-guides-prop nil))
     (let ((guides (reverse guides))
           (column (current-column))
           (currpt (point))
