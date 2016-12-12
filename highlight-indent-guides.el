@@ -21,7 +21,7 @@
 ;; SOFTWARE.
 ;;
 ;; Author: DarthFennec <darthfennec@derpymail.org>
-;; Version: 0.6.4
+;; Version: 0.6.5
 ;; Package-Requires: ((emacs "24"))
 ;; URL: https://github.com/DarthFennec/highlight-indent-guides
 
@@ -340,7 +340,6 @@ as a `font-lock-keywords' face definition."
              (`column column-method-keywords)
              (`character character-method-keywords)))
           (jit-lock-register 'highlight-indent-guides--guide-region))
-      (delete 'display 'font-lock-extra-managed-props)
       (font-lock-remove-keywords nil fill-method-keywords)
       (font-lock-remove-keywords nil column-method-keywords)
       (font-lock-remove-keywords nil character-method-keywords)
