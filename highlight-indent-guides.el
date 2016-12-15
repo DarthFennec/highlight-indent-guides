@@ -21,7 +21,7 @@
 ;; SOFTWARE.
 ;;
 ;; Author: DarthFennec <darthfennec@derpymail.org>
-;; Version: 0.6.5
+;; Version: 0.6.6
 ;; Package-Requires: ((emacs "24"))
 ;; URL: https://github.com/DarthFennec/highlight-indent-guides
 
@@ -103,11 +103,14 @@ and INDENT is this line's indent width."
 (defun highlight-indent-guides--get-guides ()
   "Extract the indent guides from a line, by reading the text properties."
   (save-excursion
-    (let (prop face seg nface nseg invalid guides)
+    (let (prop face seg nface nseg invalid guides fst)
       (while (and (not invalid) (looking-at "[[:space:]]"))
         (setq prop (get-text-property (point) 'highlight-indent-guides-prop))
-        (setq nface (car prop) nseg (nth 1 prop))
+        (setq nface (car prop) nseg (nth 1 prop) fst (nth 2 prop))
         (unless (or (eq nface 'odd) (eq nface 'even)) (setq invalid t))
+        (unless (or invalid seg nseg)
+          (when (and fst (eq face nface)) (setq invalid t))
+          (when (not (or fst (eq face nface))) (setq invalid t)))
         (unless (or invalid (and (equal face nface) (equal seg nseg)))
           (when (and face (not (equal face nface)))
             (setq guides (cons (current-column) guides)))
