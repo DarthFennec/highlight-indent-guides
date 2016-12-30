@@ -26,17 +26,17 @@
 ;; URL: https://github.com/DarthFennec/highlight-indent-guides
 
 ;;; Commentary:
-;; This minor mode highlights indentation levels via font-lock. Indent widths
+;; This minor mode highlights indentation levels via font-lock.  Indent widths
 ;; are dynamically discovered, which means this correctly highlights in any
 ;; mode, regardless of indent width, even in languages with non-uniform
-;; indentation such as Haskell. This mode works properly around hard tabs and
+;; indentation such as Haskell.  This mode works properly around hard tabs and
 ;; mixed indentation, and it behaves well in large buffers.
 ;;
 ;; To install, put this file in your load-path, and require it:
 ;;
 ;;   (require 'highlight-indent-guides)
 ;;
-;; Then, do M-x highlight-indent-guides-mode to enable it. To enable it
+;; Then, do M-x highlight-indent-guides-mode to enable it.  To enable it
 ;; automatically in most programming modes, use the following:
 ;;
 ;;   (add-hook 'prog-mode-hook 'highlight-indent-guides-mode)
@@ -91,8 +91,8 @@ This can be `fill', `column', or `character'."
 
 (defun highlight-indent-guides--calc-guides (prev-guides indent)
   "Calculate the indent guides for a line.
-PREV-GUIDES are the previous line's indent guides,
-and INDENT is this line's indent width."
+PREV-GUIDES are the previous line's indent guides, and INDENT is this line's
+indent width."
   (let ((guides prev-guides))
     (while (and guides (< indent (car guides)))
       (setq guides (cdr guides)))
@@ -208,7 +208,7 @@ and INDENT is this line's indent width."
 
 (defun highlight-indent-guides--fill-keyword-matcher (limit)
   "Search for indent guides between the point and LIMIT.
-Find the next character that is part of any indentation. This is meant to be
+Find the next character that is part of any indentation.  This is meant to be
 used as a `font-lock-keywords' matcher."
   (let* ((pos (point))
          (prop 'highlight-indent-guides-prop)
@@ -252,8 +252,8 @@ it."
 
 (defun highlight-indent-guides--fill-highlighter ()
   "Apply highlighting to the indentation.
-Return highlighting information for the character at START. Highlights all
-indentation characters in alternating colors. This is meant to be used as a
+Return highlighting information for the character at START.  Highlights all
+indentation characters in alternating colors.  This is meant to be used as a
 `font-lock-keywords' face definition."
   (let ((prop (get-text-property start 'highlight-indent-guides-prop)))
     (highlight-indent-guides--cache-highlight
@@ -274,9 +274,9 @@ indentation characters in alternating colors. This is meant to be used as a
 
 (defun highlight-indent-guides--column-highlighter ()
   "Apply highlighting to the indentation.
-Return highlighting information for the character at START. Highlights the first
-column of each indentation level in alternating colors. This is meant to be used
-as a `font-lock-keywords' face definition."
+Return highlighting information for the character at START.  Highlights the
+first column of each indentation level in alternating colors.  This is meant to
+be used as a `font-lock-keywords' face definition."
   (let ((prop (get-text-property start 'highlight-indent-guides-prop)))
     (highlight-indent-guides--cache-highlight
      'column prop
@@ -298,9 +298,9 @@ as a `font-lock-keywords' face definition."
 
 (defun highlight-indent-guides--character-highlighter ()
   "Apply highlighting to the indentation.
-Return highlighting information for the character at START. Displays a character
-in place of the first column of each indentation level. This is meant to be used
-as a `font-lock-keywords' face definition."
+Return highlighting information for the character at START.  Displays a
+character in place of the first column of each indentation level.  This is meant
+to be used as a `font-lock-keywords' face definition."
   (let ((prop (get-text-property start 'highlight-indent-guides-prop)))
     (highlight-indent-guides--cache-highlight
      'character prop
