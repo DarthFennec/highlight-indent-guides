@@ -6,8 +6,10 @@ highlight-indent-guides.el
 This minor mode highlights indentation levels via `font-lock`. Indent widths are
 dynamically discovered, which means this correctly highlights in any mode,
 regardless of indent width, even in languages with non-uniform indentation such
-as Haskell. This mode works properly around hard tabs and mixed indentation, and
-it behaves well in large buffers.
+as Haskell. By default, this mode also inspects your theme dynamically, and
+automatically chooses appropriate colors for highlighting. This mode works
+properly around hard tabs and mixed indentation, and it behaves well in large
+buffers.
 
 Screenshots
 -----------
@@ -57,6 +59,23 @@ customize `highlight-indent-guides-method`, and set it to one of the following:
   column of characters. The character to draw with is specified by
   `highlight-indent-guides-character`, and it is drawn using the face
   `highlight-indent-guides-character-face`.
+
+By default, this mode dynamically chooses colors that look acceptable with the
+loaded theme. It does this by altering the luminosity of the theme's background
+color by a given percentage. These percentages can be tweaked, to make the
+colors more intense or subtle.
+
+For example:
+
+`(setq highlight-indent-guides-auto-odd-face-perc 15)`
+
+`(setq highlight-indent-guides-auto-even-face-perc 15)`
+
+`(setq highlight-indent-guides-auto-character-face-perc 20)`
+
+To set the colors manually, this feature must be disabled:
+
+`(setq highlight-indent-guides-auto-enabled nil)`
 
 To change the colors used for highlighting in the `fill` or `column` methods,
 customize `highlight-indent-guides-odd-face` and
