@@ -21,7 +21,7 @@
 ;; SOFTWARE.
 ;;
 ;; Author: DarthFennec <darthfennec@derpymail.org>
-;; Version: 0.7
+;; Version: 0.7.1
 ;; Package-Requires: ((emacs "24.4"))
 ;; URL: https://github.com/DarthFennec/highlight-indent-guides
 
@@ -70,7 +70,6 @@
 ;;; Code:
 
 (require 'color)
-(require 'seq)
 
 (defgroup highlight-indent-guides nil
   "Indentation highlighting."
@@ -205,7 +204,10 @@ indent width."
         (setq oldprop (get-text-property currpt 'highlight-indent-guides-prop))
         (setq newprop (list currface props starter (- column currcol) nil))
         (when (and oldprop
-                   (equal (seq-subseq newprop 0 4) (seq-subseq oldprop 0 4)))
+                   (eq (car newprop) (car oldprop))
+                   (equal (nth 1 newprop) (nth 1 oldprop))
+                   (eq (nth 2 newprop) (nth 2 oldprop))
+                   (eq (nth 3 newprop) (nth 3 oldprop)))
           (setcar (cddr (cddr newprop)) (nth 4 oldprop)))
         (add-text-properties
          currpt (1+ currpt) `(highlight-indent-guides-prop ,newprop))
