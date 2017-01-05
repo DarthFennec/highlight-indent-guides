@@ -21,8 +21,8 @@
 ;; SOFTWARE.
 ;;
 ;; Author: DarthFennec <darthfennec@derpymail.org>
-;; Version: 0.7.1
-;; Package-Requires: ((emacs "24.4"))
+;; Version: 0.7.2
+;; Package-Requires: ((emacs "24"))
 ;; URL: https://github.com/DarthFennec/highlight-indent-guides
 
 ;;; Commentary:
@@ -364,7 +364,7 @@ to be used as a `font-lock-keywords' face definition."
          `(face nil display ,showstr))))))
 
 ;;;###autoload
-(defun highlight-indent-guides-auto-set-faces (&rest _)
+(defun highlight-indent-guides-auto-set-faces ()
   "Automatically calculate indent guide faces.
 If this feature is enabled, calculate reasonable values for the indent guide
 colors based on the current theme's colorscheme, and set them appropriately.
@@ -392,7 +392,12 @@ This runs whenever a theme is loaded, but it can also be run interactively."
         (set-face-background evenf (color-lighten-name bk (* mod evenp)))
         (set-face-foreground charf (color-lighten-name bk (* mod charp)))))))
 
-(advice-add 'load-theme :after 'highlight-indent-guides-auto-set-faces)
+(defadvice load-theme (after highlight-indent-guides-auto-set-faces activate)
+  "Automatically calculate indent guide faces.
+If this feature is enabled, calculate reasonable values for the indent guide
+colors based on the current theme's colorscheme, and set them appropriately.
+This runs whenever a theme is loaded."
+  (highlight-indent-guides-auto-set-faces))
 
 ;;;###autoload
 (define-minor-mode highlight-indent-guides-mode
