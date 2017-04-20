@@ -417,6 +417,8 @@ This runs whenever a theme is loaded."
                             'highlight-indent-guides-auto-set-faces)
           (ad-activate 'load-theme)
           (add-to-list 'font-lock-extra-managed-props 'display)
+          (add-to-list 'text-property-default-nonsticky
+                       (cons 'highlight-indent-guides-prop t))
           (font-lock-add-keywords
            nil
            (pcase highlight-indent-guides-method
