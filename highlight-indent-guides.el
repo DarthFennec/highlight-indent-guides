@@ -424,7 +424,8 @@ This runs whenever a theme is loaded."
            (pcase highlight-indent-guides-method
              (`fill fill-method-keywords)
              (`column column-method-keywords)
-             (`character character-method-keywords)))
+             (`character character-method-keywords))
+           t)
           (jit-lock-register 'highlight-indent-guides--guide-region))
       (ad-disable-advice 'load-theme 'after
                          'highlight-indent-guides-auto-set-faces)
