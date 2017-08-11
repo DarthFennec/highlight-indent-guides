@@ -361,6 +361,19 @@ to be used as a `font-lock-keywords' face definition."
            (add-text-properties seg (1+ seg) `(face ,face) showstr))
          `(face nil display ,showstr))))))
 
+(defun switch-highlight-indent-guides-and-whitespace-modes ()
+  "Switch between highlight-indent-guides and whitespace modes."
+  (interactive)
+  (if (get 'switch-highlight-indent-guides-and-whitespace-modes 'state)
+	  (progn
+		(whitespace-mode -1)
+		(highlight-indent-guides-mode 1)
+		(put 'switch-highlight-indent-guides-and-whitespace-modes 'state nil))
+	(progn
+	  (whitespace-mode 1)
+	  (highlight-indent-guides-mode -1)
+	  (put 'switch-highlight-indent-guides-and-whitespace-modes 'state t))))
+
 ;;;###autoload
 (defun highlight-indent-guides-auto-set-faces ()
   "Automatically calculate indent guide faces.
