@@ -21,7 +21,7 @@
 ;; SOFTWARE.
 ;;
 ;; Author: DarthFennec <darthfennec@derpymail.org>
-;; Version: 0.7.3
+;; Version: 0.7.4
 ;; Package-Requires: ((emacs "24"))
 ;; URL: https://github.com/DarthFennec/highlight-indent-guides
 
@@ -397,6 +397,12 @@ colors based on the current theme's colorscheme, and set them appropriately.
 This runs whenever a theme is loaded."
   (highlight-indent-guides-auto-set-faces))
 
+(defun highlight-indent-guides--auto-set-faces-with-frame (frame)
+  "Run `highlight-indent-guides-auto-set-faces' in frame FRAME.
+This function is designed to run from the `after-make-frame-functions' hook."
+  (with-selected-frame frame
+    (highlight-indent-guides-auto-set-faces)))
+
 ;;;###autoload
 (define-minor-mode highlight-indent-guides-mode
   "Display indent guides in a buffer."
@@ -412,7 +418,9 @@ This runs whenever a theme is loaded."
             0 (highlight-indent-guides--character-highlighter) t))))
     (if highlight-indent-guides-mode
         (progn
-          (highlight-indent-guides-auto-set-faces)
+          (unless (daemonp) (highlight-indent-guides-auto-set-faces))
+          (add-to-list 'after-make-frame-functions
+                       'highlight-indent-guides--auto-set-faces-with-frame)
           (ad-enable-advice 'load-theme 'after
                             'highlight-indent-guides-auto-set-faces)
           (ad-activate 'load-theme)
@@ -429,6 +437,9 @@ This runs whenever a theme is loaded."
              (`character character-method-keywords))
            t)
           (jit-lock-register 'highlight-indent-guides--guide-region))
+      (setq after-make-frame-functions
+            (delete 'highlight-indent-guides--auto-set-faces-with-frame
+                    after-make-frame-functions))
       (ad-disable-advice 'load-theme 'after
                          'highlight-indent-guides-auto-set-faces)
       (ad-activate 'load-theme)
