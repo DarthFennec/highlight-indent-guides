@@ -109,6 +109,97 @@ For example:
 (set-face-foreground 'highlight-indent-guides-character-face "dimgray")
 ```
 
+Responsive Guides
+-----------------
+
+*Note: This feature is currently unstable. It may not yet be very performant,
+and it will sometimes show the wrong guide colors. If you are uncomfortable with
+this, leave this feature turned off until it becomes more stable.*
+
+Responsive guides allow you to visualize not only the indentation itself, but
+your place in it. To enable this feature, customize
+`highlight-indent-guides-responsive`, and set it to one of the following:
+- `nil`: The default. Responsive guides are disabled.
+- `top`: Use a different color to highlight the "current" guide (the indentation
+  block of the line that the cursor is on). This changes as the cursor moves.
+- `stack`: Like `top`, but also use a third color for all "ancestor" guides of
+  the current guide. Again, this will change as the cursor moves around.
+
+For performance reasons, responsive guides are not updated immediately every
+time the cursor moves; instead, guides only update after the cursor stops moving
+for a certain period of time (one tenth of a second, by default). If you would
+like to change this behavior, customize `highlight-indent-guides-delay`, and set
+it to the number of seconds to wait. For example, to disable the delay entirely:
+
+``` emacs-lisp
+(setq highlight-indent-guides-delay 0)
+```
+
+Enabling this feature provides more highlight faces, as well as more color
+modifiers for the dynamic colors feature. These are specified in the following
+table:
+
+Type | Level | Method    | Variable
+-----|-------|-----------|------------------------------------------------------
+face | nil   | odd       | `highlight-indent-guides-odd-face`
+face | nil   | even      | `highlight-indent-guides-even-face`
+face | nil   | character | `highlight-indent-guides-character-face`
+face | top   | odd       | `highlight-indent-guides-top-odd-face`
+face | top   | even      | `highlight-indent-guides-top-even-face`
+face | top   | character | `highlight-indent-guides-top-character-face`
+face | stack | odd       | `highlight-indent-guides-stack-odd-face`
+face | stack | even      | `highlight-indent-guides-stack-even-face`
+face | stack | character | `highlight-indent-guides-stack-character-face`
+perc | nil   | odd       | `highlight-indent-guides-auto-odd-face-perc`
+perc | nil   | even      | `highlight-indent-guides-auto-even-face-perc`
+perc | nil   | character | `highlight-indent-guides-auto-character-face-perc`
+perc | top   | odd       | `highlight-indent-guides-auto-top-odd-face-perc`
+perc | top   | even      | `highlight-indent-guides-auto-top-even-face-perc`
+perc | top   | character | `highlight-indent-guides-auto-top-character-face-perc`
+perc | stack | odd       | `highlight-indent-guides-auto-stack-odd-face-perc`
+perc | stack | even      | `highlight-indent-guides-auto-stack-even-face-perc`
+perc | stack | character | `highlight-indent-guides-auto-stack-character-face-perc`
+
+Custom Highlighter Function
+---------------------------
+
+The highlighter function is the function that calculates which faces to use to
+display each guide character. If the default highlighter function isn't doing it
+for you, you can write your own by customizing
+`highlight-indent-guides-highlighter-function`. A custom highlighter takes three
+parameters:
+
+- `level`: The indent level this guide character exists at, starting at `0`.
+- `responsive`: The responsive class of this guide character. This can be `nil`,
+  `top`, or `stack`.
+- `display`: The display method setting. One of `fill`, `column`, or
+  `character`.
+
+A custom highlighter should return the face to use to color the given guide
+character. Alternatively, it may return `nil` to specify that the guide should
+not be displayed at all.
+
+The highlighter function is called once for each indentation character, each
+time a section of the buffer is re-highlighted. To speed things up a little, the
+results of the highlighter function are memoized per-character, and are reused
+when possible. Because of this, a custom highlighter should run quickly, and
+should not have side-effects (i.e. it should not depend on or change external
+values that might differ from one call to the next). A custom highlighter can
+return custom faces, but those faces will not be recognized by the dynamic color
+feature, and will need to be defined and colored manually.
+
+The following example highlighter will highlight normally, except that it will
+not highlight the first two levels of indentation:
+
+``` emacs-lisp
+(defun my-highlighter (level responsive display)
+  (if (> 2 level)
+      nil
+    (highlight-indent-guides--highlighter-default level responsive display)))
+
+(setq highlight-indent-guides-highlighter-function 'my-highlighter)
+```
+
 Limitations
 -----------
 
@@ -118,6 +209,9 @@ correctly, this mode controls the `display` text property of some characters via
 use the `display` text property. This mode may also interfere with modes that
 use a display table to modify how whitespace is drawn, e.g., the `whitespace`
 minor mode.
+
+Currently, with the way this mode is designed, there is no good way to display
+indent guides on empty lines.
 
 Alternatives
 ------------
