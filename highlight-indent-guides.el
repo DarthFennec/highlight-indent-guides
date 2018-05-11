@@ -21,7 +21,7 @@
 ;; SOFTWARE.
 ;;
 ;; Author: DarthFennec <darthfennec@derpymail.org>
-;; Version: 0.8.0
+;; Version: 0.8.1
 ;; Package-Requires: ((emacs "24"))
 ;; URL: https://github.com/DarthFennec/highlight-indent-guides
 
@@ -521,7 +521,7 @@ updated to match."
         ;; TODO only do this if necessary, so if any lines changed or if the
         ;; line cache changed
         (if (equal oldsect newsect)
-            (font-lock-fontify-region start (caar chunk))
+            (font-lock-fontify-region start (if chunk (caar chunk) end))
           (setq rng (highlight-indent-guides--discover-ranges oldsect newsect))
           (dolist (range (highlight-indent-guides--try-merge-ranges
                           (cons start (caar chunk)) (car rng) (cadr rng)))
