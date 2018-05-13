@@ -780,6 +780,10 @@ This function is designed to run from the `after-make-frame-functions' hook."
       (setq highlight-indent-guides--idle-timer nil))
     (if highlight-indent-guides-mode
         (progn
+          ;; set highlight-indent-guides--line-cache so it becomes buffer-local
+          ;; After this, we can destructively modify it just fine, as every
+          ;; buffer has a unique object.
+          (setq highlight-indent-guides--line-cache (list nil nil nil))
           (unless (daemonp) (highlight-indent-guides-auto-set-faces))
           (add-to-list 'after-make-frame-functions
                        'highlight-indent-guides--auto-set-faces-with-frame)
