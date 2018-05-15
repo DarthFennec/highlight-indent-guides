@@ -112,10 +112,6 @@ For example:
 Responsive Guides
 -----------------
 
-*Note: This feature is currently unstable. It may not yet be very performant,
-and it will sometimes show the wrong guide colors. If you are uncomfortable with
-this, leave this feature turned off until it becomes more stable.*
-
 Responsive guides allow you to visualize not only the indentation itself, but
 your place in it. To enable this feature, customize
 `highlight-indent-guides-responsive`, and set it to one of the following:
@@ -125,11 +121,11 @@ your place in it. To enable this feature, customize
 - `stack`: Like `top`, but also use a third color for all "ancestor" guides of
   the current guide. Again, this will change as the cursor moves around.
 
-For performance reasons, responsive guides are not updated immediately every
-time the cursor moves; instead, guides only update after the cursor stops moving
-for a certain period of time (one tenth of a second, by default). If you would
-like to change this behavior, customize `highlight-indent-guides-delay`, and set
-it to the number of seconds to wait. For example, to disable the delay entirely:
+By default, responsive guides are not updated immediately every time the cursor
+moves. Instead, guides only update after the cursor stops moving for a certain
+period of time (one tenth of a second, by default). If you would like to change
+this behavior, customize `highlight-indent-guides-delay`, and set it to the
+number of seconds to wait. For example, to disable the delay entirely:
 
 ``` emacs-lisp
 (setq highlight-indent-guides-delay 0)

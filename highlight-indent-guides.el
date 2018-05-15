@@ -21,7 +21,7 @@
 ;; SOFTWARE.
 ;;
 ;; Author: DarthFennec <darthfennec@derpymail.org>
-;; Version: 0.8.2
+;; Version: 0.8.3
 ;; Package-Requires: ((emacs "24"))
 ;; URL: https://github.com/DarthFennec/highlight-indent-guides
 
@@ -297,9 +297,7 @@ line cache.  It only updates the cache when absolutely necessary."
         (setcar (cddr highlight-indent-guides--line-cache) dt)
         (setq rng (highlight-indent-guides--discover-ranges dt cached-dt))
         (dolist (range (apply 'highlight-indent-guides--try-merge-ranges rng))
-          (if (fboundp 'font-lock-flush)
-              (font-lock-flush (car range) (cdr range))
-            (font-lock-fontify-region (car range) (cdr range))))))))
+          (highlight-indent-guides--overdraw (car range) (cdr range)))))))
 
 (defun highlight-indent-guides--iscdr (sub sup)
   "Calculate whether SUB is a cdr of SUP."
@@ -702,6 +700,34 @@ to be used as a `font-lock-keywords' face definition."
            (setq facep (1+ facep)))
          `(face nil display ,showstr))))))
 
+(defun highlight-indent-guides--overdraw (start end)
+  "Overdraw the guides in the region from START to END.
+This function is like `font-lock-fontify-region' or `font-lock-ensure', except
+it only draws indent guides.  This function is called to update the display
+whenever the active indent level changes, as long as responsive guides are
+enabled.  This function is used because it avoids doing extra work like clearing
+existing fontification, redrawing syntax and other keywords, or calling jit-lock
+recursively."
+  (with-silent-modifications
+    (save-excursion
+      (save-restriction
+        (let ((matcher
+               (pcase highlight-indent-guides-method
+                 (`fill 'highlight-indent-guides--fill-keyword-matcher)
+                 (`column 'highlight-indent-guides--column-keyword-matcher)
+                 (`character 'highlight-indent-guides--column-keyword-matcher)))
+              (highlight
+               (pcase highlight-indent-guides-method
+                 (`fill 'highlight-indent-guides--fill-highlighter)
+                 (`column 'highlight-indent-guides--column-highlighter)
+                 (`character 'highlight-indent-guides--character-highlighter)))
+              (inhibit-point-motion-hooks t))
+          (unless font-lock-dont-widen (widen))
+          (goto-char start)
+          (while (and (< (point) end) (funcall matcher end))
+            (unless (> (point) (match-beginning 0)) (forward-char 1))
+            (font-lock-apply-highlight (list 0 (list highlight) t))))))))
+
 ;;;###autoload
 (defun highlight-indent-guides-auto-set-faces ()
   "Automatically calculate indent guide faces.
@@ -762,6 +788,9 @@ This function is designed to run from the `after-make-frame-functions' hook."
   (with-selected-frame frame
     (highlight-indent-guides-auto-set-faces)))
 
+(make-variable-buffer-local 'font-lock-extra-managed-props)
+(make-variable-buffer-local 'text-property-default-nonsticky)
+
 ;;;###autoload
 (define-minor-mode highlight-indent-guides-mode
   "Display indent guides in a buffer."
@@ -790,8 +819,6 @@ This function is designed to run from the `after-make-frame-functions' hook."
           (ad-enable-advice 'load-theme 'after
                             'highlight-indent-guides-auto-set-faces)
           (ad-activate 'load-theme)
-          (make-variable-buffer-local 'font-lock-extra-managed-props)
-          (make-variable-buffer-local 'text-property-default-nonsticky)
           (add-to-list 'font-lock-extra-managed-props 'display)
           (add-to-list 'text-property-default-nonsticky
                        (cons 'highlight-indent-guides-prop t))
