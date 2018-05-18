@@ -21,7 +21,7 @@
 ;; SOFTWARE.
 ;;
 ;; Author: DarthFennec <darthfennec@derpymail.org>
-;; Version: 0.8.3
+;; Version: 0.8.4
 ;; Package-Requires: ((emacs "24"))
 ;; URL: https://github.com/DarthFennec/highlight-indent-guides
 
@@ -443,58 +443,65 @@ updated to match."
       (let ((prop 'highlight-indent-guides-prop)
             (guides (highlight-indent-guides--get-prev-guides))
             (eof (< 0 (forward-line)))
-            chunk oldguides oldsect newsect lf le rng endscache)
+            (startl (point)) (endl end)
+            chunk oldguides oldsect newsect lf le rng)
         ;; for the given region, extract old guides and calculate new guides
-        (while (not (or eof (and (>= (point) end)
+        (while (not (or eof (and (>= (point) endl)
                                  (not (eq oldguides t))
-                                 (equal (car guides) (car oldguides)))))
+                                 (equal (car guides) (car oldguides))
+                                 (eq (cdr guides) (cdr oldguides)))))
           (if (or (let ((s (syntax-ppss))) (or (nth 3 s) (nth 4 s)))
                   (looking-at "[[:space:]]*$"))
               (setq chunk (cons (list (point)) chunk))
             (let ((tmpguides (cdr guides)) ends currend)
               (while tmpguides
                 (when (car tmpguides)
-                  (setq ends
-                        (cons (cons tmpguides
-                                    (marker-position (cdar tmpguides))) ends)))
+                  (setq ends (cons (marker-position (cdar tmpguides)) ends)))
                 (setq tmpguides (cdr tmpguides)))
               (setq guides (highlight-indent-guides--calc-guides guides))
-              (setq tmpguides (cdr guides))
-              (while tmpguides
-                (setq currend (assq tmpguides ends))
-                (unless (or (null currend) (<= (cdr currend) (cdar tmpguides)))
-                  (setq endscache (cons currend endscache)))
-                (setq tmpguides (cdr tmpguides))))
+              (setq endl (max endl (or (nth (length (cdr guides)) ends) 0))))
             (setq oldguides (highlight-indent-guides--get-guides))
             (setq chunk (cons (list (point) guides oldguides) chunk)))
-          (setq eof (< 0 (forward-line))))
-        (setq guides (cons (car guides) (cdr guides)))
-        ;; expand sections if necessary
-        (let ((lep (line-end-position 0)))
-          (dolist (guide (cdr guides))
-            (when (and (cdr guide) (> lep (cdr guide)))
-              (set-marker (cdr guide) lep))))
-        ;; update sections that have changed
-        (when (and (listp oldguides)
-                   (equal (car guides) (car oldguides))
-                   (not (eq (cdr guides) (cdr oldguides))))
-          (let ((ng (cdr guides))
-                (og (cdr oldguides)))
-            (while (and og ng)
-              (set-marker (caar og) (caar ng))
-              (setq ng (cdr ng))
-              (setq og (cdr og))))
-          ;; TODO merge this loop into the dolist below
-          (let ((newsect chunk))
-            ;; TODO I wonder if we can skip the rest of these the moment we find
-            ;; one that doesn't do any replacements
-            (while newsect
-              (when (cdar newsect)
-                (setcdr (nth 1 (car newsect))
-                        (highlight-indent-guides--replace-section
-                         (cdr (nth 1 (car newsect)))
-                         (cdr guides) (cdr oldguides))))
-              (setq newsect (cdr newsect)))))
+          (setq eof (< 0 (forward-line)))
+          ;; expand sections if necessary
+          (when (or eof (and (>= (point) endl)
+                             (not (eq oldguides t))
+                             (equal (car guides) (car oldguides))))
+            (let ((lep (line-end-position 0)))
+              (dolist (guide (cdr guides))
+                (when (and (cdr guide) (> lep (cdr guide)))
+                  (set-marker (cdr guide) lep)))))
+          ;; ensure chunk is flush with surrounding sections
+          (when (and (>= (point) endl)
+                     (not (eq oldguides t))
+                     (equal (car guides) (car oldguides))
+                     (not (eq (cdr guides) (cdr oldguides))))
+            (setq guides (cons (car guides) (cdr guides)))
+            (let ((ng (cdr guides)) (og (cdr oldguides)) (badguide t)
+                  abovestart aboveend belowstart belowend above below)
+              (while (and og ng (nlistp badguide))
+                (when (eq (cdr og) (cdr ng)) (setq badguide (cons og ng)))
+                (setq ng (cdr ng) og (cdr og)))
+              (setq abovestart (caar (cdr badguide)) aboveend startl)
+              (setq belowstart (point) belowend (cdar (car badguide)))
+              (setq above (- aboveend abovestart) below (- belowend belowstart))
+              (if (>= (- belowstart abovestart) below) (setq endl belowend)
+                (if (>= 0 above)
+                    (let ((ng (cdr guides)) (og (cdr oldguides)))
+                      ;; transform existing lines in chunk to use new sections
+                      (while (and og ng)
+                        (set-marker (caar og) (caar ng))
+                        (setq ng (cdr ng) og (cdr og)))
+                      (dolist (line chunk)
+                        (when (cdr line)
+                          (setcdr (nth 1 line)
+                                  (highlight-indent-guides--replace-section
+                                   (cdr (nth 1 line))
+                                   (cdr guides) (cdr oldguides))))))
+                  (goto-char abovestart)
+                  (setq guides (highlight-indent-guides--get-prev-guides))
+                  (setq eof (< 0 (forward-line)))
+                  (setq startl (point) oldguides nil chunk nil))))))
         ;; rewrite text properties for all lines in chunk
         (dolist (line chunk)
           (goto-char (car line))
@@ -516,13 +523,11 @@ updated to match."
           (setq newsect (highlight-indent-guides--update-line-cache))
           (setcar (cddr highlight-indent-guides--line-cache) newsect))
         ;; refontify updated regions
-        ;; TODO only do this if necessary, so if any lines changed or if the
-        ;; line cache changed
         (if (equal oldsect newsect)
-            (font-lock-fontify-region start (if chunk (caar chunk) end))
+            (font-lock-fontify-region startl endl)
           (setq rng (highlight-indent-guides--discover-ranges oldsect newsect))
           (dolist (range (highlight-indent-guides--try-merge-ranges
-                          (cons start (caar chunk)) (car rng) (cadr rng)))
+                          (cons startl endl) (car rng) (cadr rng)))
             (font-lock-fontify-region (car range) (cdr range))))))))
 
 (defun highlight-indent-guides--unguide-region (start end)
