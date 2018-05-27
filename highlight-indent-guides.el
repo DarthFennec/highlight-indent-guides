@@ -280,7 +280,8 @@ function is called whenever the current line data changes."
   "Update the line cache, if necessary.
 This function is called whenever the point moves in a way that might change the
 line cache.  It only updates the cache when absolutely necessary."
-  (when highlight-indent-guides-responsive
+  (when (and highlight-indent-guides-responsive
+             highlight-indent-guides-mode)
     (let ((cached-pt (car highlight-indent-guides--line-cache))
           (cached-ln (nth 1 highlight-indent-guides--line-cache))
           (cached-dt (nth 2 highlight-indent-guides--line-cache))
