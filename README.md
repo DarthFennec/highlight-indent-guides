@@ -14,7 +14,7 @@ buffers.
 Screenshots
 -----------
 
-![responsive gif](img/highlight-indent-guides-responsive-screenshot.gif)
+![responsive gif](https://i.imgur.com/oxEdRty.gif)
 
 ``` emacs-lisp
 (setq highlight-indent-guides-method ...)
@@ -22,7 +22,11 @@ Screenshots
 
 `'fill` | `'column` | `'character`
 --------|-----------|-------------
-![fill method screenshot](img/highlight-indent-guides-fill-screenshot.png) | ![column method screenshot](img/highlight-indent-guides-column-screenshot.png) | ![character method screenshot](img/highlight-indent-guides-character-screenshot.png)
+![fill method screenshot][img1] | ![column method screenshot][img2] | ![character method screenshot][img3]
+
+[img1]: https://i.imgur.com/SSlo0So.png
+[img2]: https://i.imgur.com/drZ1We2.png
+[img3]: https://i.imgur.com/GgjFtYH.png
 
 Installation
 ------------
