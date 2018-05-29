@@ -14,7 +14,7 @@ buffers.
 Screenshots
 -----------
 
-![responsive gif](https://i.imgur.com/oxEdRty.gif)
+![responsive gif](https://i.imgur.com/E8OFdos.gif)
 
 ``` emacs-lisp
 (setq highlight-indent-guides-method ...)
