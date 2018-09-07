@@ -21,7 +21,7 @@
 ;; SOFTWARE.
 ;;
 ;; Author: DarthFennec <darthfennec@derpymail.org>
-;; Version: 0.8.4
+;; Version: 0.8.5
 ;; Package-Requires: ((emacs "24"))
 ;; URL: https://github.com/DarthFennec/highlight-indent-guides
 
@@ -690,8 +690,9 @@ to be used as a `font-lock-keywords' face definition."
            (progn
              (setq face (funcall highlighter facep (car shouldhl) 'character))
              (when face
-               (setq showstr (char-to-string highlight-indent-guides-character))
-               `(face ,face display ,showstr)))
+               (setq showstr
+                     (char-to-string highlight-indent-guides-character)))
+             `(face ,face display ,showstr))
          (setq showstr (make-string cwidth ?\s))
          (when starter
            (setq face (funcall highlighter facep (pop shouldhl) 'character))
