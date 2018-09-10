@@ -801,7 +801,7 @@ This function is designed to run from the `after-make-frame-functions' hook."
 ;;;###autoload
 (define-minor-mode highlight-indent-guides-mode
   "Display indent guides in a buffer."
-  nil nil nil
+  nil " h-i-g" nil
   (let ((fill-method-keywords
          '((highlight-indent-guides--fill-keyword-matcher
             0 (highlight-indent-guides--fill-highlighter) t)))
