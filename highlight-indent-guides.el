@@ -368,8 +368,9 @@ indent width."
 (defun highlight-indent-guides--get-prev-guides ()
   "Scan up the buffer to find a starting point to calculate guides from."
   (let ((guides t))
-    (while (and (nlistp guides) (< 1 (line-number-at-pos)))
-      (forward-line -1)
+    (while (and (nlistp guides) (let ((p (point)))
+                                  (or (/= -1 (forward-line -1))
+                                      (not (goto-char p)))))
       (unless (or (let ((s (syntax-ppss))) (or (nth 3 s) (nth 4 s)))
                   (looking-at "[[:space:]]*$"))
         (setq guides (highlight-indent-guides--get-guides))))
