@@ -628,10 +628,10 @@ The guide's data is given as PROP."
 
 (defun highlight-indent-guides--fill-highlighter ()
   "Apply highlighting to the indentation.
-Return highlighting information for the character at START.  Highlights all
+Return highlighting information for the matched character.  Highlights all
 indentation characters in alternating colors.  This is meant to be used as a
 `font-lock-keywords' face definition."
-  (let* ((prop (get-text-property start 'highlight-indent-guides-prop))
+  (let* ((prop (get-text-property (match-beginning 0) 'highlight-indent-guides-prop))
          (shouldhl (highlight-indent-guides--should-highlight prop)))
     (highlight-indent-guides--cache-highlight
      'fill prop shouldhl
@@ -651,10 +651,10 @@ indentation characters in alternating colors.  This is meant to be used as a
 
 (defun highlight-indent-guides--column-highlighter ()
   "Apply highlighting to the indentation.
-Return highlighting information for the character at START.  Highlights the
+Return highlighting information for the matched character.  Highlights the
 first column of each indentation level in alternating colors.  This is meant to
 be used as a `font-lock-keywords' face definition."
-  (let* ((prop (get-text-property start 'highlight-indent-guides-prop))
+  (let* ((prop (get-text-property (match-beginning 0) 'highlight-indent-guides-prop))
          (shouldhl (highlight-indent-guides--should-highlight prop)))
     (highlight-indent-guides--cache-highlight
      'column prop shouldhl
@@ -676,10 +676,10 @@ be used as a `font-lock-keywords' face definition."
 
 (defun highlight-indent-guides--character-highlighter ()
   "Apply highlighting to the indentation.
-Return highlighting information for the character at START.  Displays a
-character in place of the first column of each indentation level.  This is meant
-to be used as a `font-lock-keywords' face definition."
-  (let* ((prop (get-text-property start 'highlight-indent-guides-prop))
+Return highlighting information for the matched character.  Displays a character
+in place of the first column of each indentation level.  This is meant to be
+used as a `font-lock-keywords' face definition."
+  (let* ((prop (get-text-property (match-beginning 0) 'highlight-indent-guides-prop))
          (shouldhl (highlight-indent-guides--should-highlight prop)))
     (highlight-indent-guides--cache-highlight
      'character prop shouldhl
