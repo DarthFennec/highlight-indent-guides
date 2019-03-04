@@ -76,6 +76,12 @@ For example:
 (setq highlight-indent-guides-character ?\|)
 ```
 
+Or for full-height lines:
+
+``` emacs-lisp
+(setq highlight-indent-guides-character ?\u258F)
+```
+
 Highlight Colors
 ----------------
 
