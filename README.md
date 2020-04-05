@@ -32,8 +32,12 @@ Installation
 ------------
 
 To install from [Melpa](http://melpa.org/#/getting-started), use <kbd>M-x
-package-install RET highlight-indent-guides RET</kbd>. Otherwise, download
-`highlight-indent-guides.el` and put it in your load path.
+package-install RET highlight-indent-guides RET</kbd>.
+
+To install from [GNU Guix](https://guix.gnu.org/), run `guix install
+emacs-highlight-indent-guides`.
+
+ Otherwise, download `highlight-indent-guides.el` and put it in your load path.
 
 Usage
 -----
