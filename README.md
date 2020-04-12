@@ -20,13 +20,18 @@ Screenshots
 (setq highlight-indent-guides-method ...)
 ```
 
-`'fill` | `'column` | `'character`
---------|-----------|-------------
-![fill method screenshot][img1] | ![column method screenshot][img2] | ![character method screenshot][img3]
+`'fill` | `'column`
+--------|----------
+![fill method screenshot][img1] | ![column method screenshot][img2]
 
-[img1]: https://i.imgur.com/SSlo0So.png
-[img2]: https://i.imgur.com/drZ1We2.png
-[img3]: https://i.imgur.com/GgjFtYH.png
+`'character` | `'bitmap`
+-------------|----------
+![character method screenshot][img3] | ![bitmap method screenshot][img4]
+
+[img1]: https://i.imgur.com/5ryNTVn.png
+[img2]: https://i.imgur.com/QgMTkkx.png
+[img3]: https://i.imgur.com/33mZPrU.png
+[img4]: https://i.imgur.com/WjpqFz2.png
 
 Installation
 ------------
@@ -53,8 +58,8 @@ following:
 Configuration
 -------------
 
-This mode supports three display methods. To change the display method,
-customize `highlight-indent-guides-method`, and set it to one of the following:
+This mode supports four display methods. To change the display method, customize
+`highlight-indent-guides-method`, and set it to one of the following:
 - `fill`: The default method. All whitespace used for indentation is
   highlighted. The color of each level of indentation alternates between
   `highlight-indent-guides-odd-face` and `highlight-indent-guides-even-face`.
@@ -64,6 +69,11 @@ customize `highlight-indent-guides-method`, and set it to one of the following:
   column of characters. The character to draw with is specified by
   `highlight-indent-guides-character`, and it is drawn using the face
   `highlight-indent-guides-character-face`.
+- `bitmap`: Like `character`, but an image is used in place of a character. This
+  provides a wider variety of appearance options, and ensures that guides are
+  always flush, not broken if the line height exceeds the character height. The
+  image to use can be set by overloading the
+  `highlight-indent-guides-bitmap-function` variable with a custom function.
 
 For example:
 
@@ -168,8 +178,8 @@ parameters:
 - `level`: The indent level this guide character exists at, starting at `0`.
 - `responsive`: The responsive class of this guide character. This can be `nil`,
   `top`, or `stack`.
-- `display`: The display method setting. One of `fill`, `column`, or
-  `character`.
+- `display`: The display method setting. One of `fill`, `column`, `character`,
+  or `bitmap`.
 
 A custom highlighter should return the face to use to color the given guide
 character. Alternatively, it may return `nil` to specify that the guide should
@@ -196,6 +206,30 @@ not highlight the first two levels of indentation:
 (setq highlight-indent-guides-highlighter-function 'my-highlighter)
 ```
 
+Custom Bitmap Function
+----------------------
+
+If you're using the `'bitmap` display method, you may set a custom bitmap
+function, which determines what your guides will look like. Customize
+`highlight-indent-guides-bitmap-function`, and set it to:
+
+- `highlight-indent-guides--bitmap-dots`: A guide is a column of small dots.
+  This is the default.
+- `highlight-indent-guides--bitmap-line`: A guide is a solid vertical line.
+- Or, write your own.
+
+A custom bitmap function takes three parameters:
+
+- `width`: The width in pixels of the bitmap.
+- `height`: The height in pixels of the bitmap.
+- `crep`: A character that represents a "filled" or "colored" pixel. This is as
+  opposed to an "empty" pixel, which the background color will show through.
+
+The function should return a list of strings, representing the pixels
+themselves. The list must contain `height` strings, and each string must contain
+`width` characters, all of which are either `crep` for a colored pixel or `?0`
+for an empty pixel.
+
 Limitations
 -----------
 
@@ -205,6 +239,9 @@ correctly, this mode controls the `display` text property of some characters via
 use the `display` text property. This mode may also interfere with modes that
 use a display table to modify how whitespace is drawn, e.g., the `whitespace`
 minor mode.
+
+The `bitmap` display method can only be used if emacs is compiled with xpm
+support, and is running in gui mode.
 
 Currently, with the way this mode is designed, there is no good way to display
 indent guides on empty lines.
