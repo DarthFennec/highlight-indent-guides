@@ -119,6 +119,21 @@ For example:
 (set-face-foreground 'highlight-indent-guides-character-face "dimgray")
 ```
 
+In some configurations, the following error might show up when emacs starts:
+
+```
+Error: highlight-indent-guides cannot auto set faces: `default' face is not set properly
+```
+
+This is meant as a warning for when the faces can't be set, but in some
+situations the error might show up even when the faces are set properly. If this
+happens regularly, the error can be suppressed by customizing
+`highlight-indent-guides-suppress-auto-error`:
+
+``` emacs-lisp
+(setq highlight-indent-guides-suppress-auto-error t)
+```
+
 Responsive Guides
 -----------------
 
