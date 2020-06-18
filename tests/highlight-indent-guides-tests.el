@@ -47,5 +47,43 @@ BODY is code to be executed within the temp buffer "
     (beginning-of-line)
     (should (listp (get-text-property (point) 'highlight-indent-guides-prop)))))
 
+(ert-deftest higlight-indent-guides-python-fill-test-diuB24 ()
+  (higlight-indent-guides-test
+      "def main():
+    if len(sys.argv) == 1:
+        usage()"
+    'python-mode
+    higlight-indent-guides-debug-p
+    (let ((highlight-indent-guides-method 'fill))
+      (beginning-of-line)
+      (should (listp (get-text-property (point) 'highlight-indent-guides-prop))))))
+
+(ert-deftest higlight-indent-guides-77-comment-face-test-kGiOk1 ()
+  (higlight-indent-guides-test
+      "(defun foo1 (\&optional beg end)
+  \"asdf \"
+  (interactive \"*\")
+  )"
+    'emacs-lisp-mode
+    higlight-indent-guides-debug-p
+    (goto-char (point-max)) 
+    (search-backward "int")
+    (beginning-of-line)
+    (should (listp (get-text-property (point) 'highlight-indent-guides-prop)))))
+
+(ert-deftest higlight-indent-guides-77-comment-face-test-lhKKTF ()
+  (higlight-indent-guides-test
+      "(defun foo1 (\&optional beg end)
+  \"asdf \"
+  (interactive \"*\")
+  )"
+    'emacs-lisp-mode
+    higlight-indent-guides-debug-p
+    (goto-char (point-max)) 
+    (search-backward "int")
+    (beginning-of-line)
+    (insert ";;")
+    (should-not (get-text-property (point) 'highlight-indent-guides-prop))))
+
 (provide 'highlight-indent-guides-tests)
 ;;; highlight-indent-guides-tests.el ends here
