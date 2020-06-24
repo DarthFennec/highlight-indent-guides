@@ -17,7 +17,7 @@ Screenshots
 ![responsive gif](https://i.imgur.com/hIUIKgs.gif)
 
 ``` emacs-lisp
-M-x customize-variable RET highlight-indent-guides-method RET ...)
+M-x customize-variable RET highlight-indent-guides-method RET ... 
 ```
 
 `'fill` | `'column`
@@ -78,7 +78,7 @@ This mode supports four display methods. To change the display method, customize
 For example:
 
 ``` emacs-lisp
-customize-variable RET highlight-indent-guides-method RET 'character
+M-x customize-variable RET highlight-indent-guides-method RET 'character
 ```
 
 To change the character used for drawing guide lines with the `character`
