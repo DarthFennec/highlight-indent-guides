@@ -16,9 +16,7 @@ Screenshots
 
 ![responsive gif](https://i.imgur.com/hIUIKgs.gif)
 
-``` emacs-lisp
-(setq highlight-indent-guides-method ...)
-```
+<kbd>M-x customize-variable RET highlight-indent-guides-method RET ...</kbd>
 
 `'fill` | `'column`
 --------|----------
@@ -77,18 +75,14 @@ This mode supports four display methods. To change the display method, customize
 
 For example:
 
-``` emacs-lisp
-(setq highlight-indent-guides-method 'character)
-```
+<kbd>M-x customize-variable RET highlight-indent-guides-method RET 'character</kbd>
 
 To change the character used for drawing guide lines with the `character`
 display method, customize `highlight-indent-guides-character`.
 
 For example:
 
-``` emacs-lisp
-(setq highlight-indent-guides-character ?\|)
-```
+<kbd>M-x customize-variable RET highlight-indent-guides-character RET ?\|</kbd>
 
 Highlight Colors
 ----------------
@@ -100,20 +94,18 @@ colors more intense or subtle.
 
 For example:
 
-``` emacs-lisp
-(setq highlight-indent-guides-auto-odd-face-perc 15)
-(setq highlight-indent-guides-auto-even-face-perc 15)
-(setq highlight-indent-guides-auto-character-face-perc 20)
-```
+<kbd>M-x customize-variable RET highlight-indent-guides-auto-odd-face-perc RET 15</kbd>
+<kbd>M-x customize-variable RET highlight-indent-guides-auto-even-face-perc RET 15</kbd>
+<kbd>M-x customize-variable RET highlight-indent-guides-auto-character-face-perc RET 20</kbd>
 
 To set the colors manually, disable this feature and customize the faces
 directly.
 
 For example:
 
-``` emacs-lisp
-(setq highlight-indent-guides-auto-enabled nil)
+<kbd>M-x customize-variable RET highlight-indent-guides-auto-enabled RET nil</kbd>
 
+``` emacs-lisp
 (set-face-background 'highlight-indent-guides-odd-face "darkgray")
 (set-face-background 'highlight-indent-guides-even-face "dimgray")
 (set-face-foreground 'highlight-indent-guides-character-face "dimgray")
@@ -130,9 +122,7 @@ situations the error might show up even when the faces are set properly. If this
 happens regularly, the error can be suppressed by customizing
 `highlight-indent-guides-suppress-auto-error`:
 
-``` emacs-lisp
-(setq highlight-indent-guides-suppress-auto-error t)
-```
+<kbd>M-x customize-variable RET highlight-indent-guides-suppress-auto-error RET t</kbd>
 
 Responsive Guides
 -----------------
@@ -152,9 +142,7 @@ period of time (one tenth of a second, by default). If you would like to change
 this behavior, customize `highlight-indent-guides-delay`, and set it to the
 number of seconds to wait. For example, to disable the delay entirely:
 
-``` emacs-lisp
-(setq highlight-indent-guides-delay 0)
-```
+<kbd>M-x customize-variable RET highlight-indent-guides-delay RET 0</kbd>
 
 Enabling this feature provides more highlight faces, as well as more color
 modifiers for the dynamic colors feature. These are specified in the following
