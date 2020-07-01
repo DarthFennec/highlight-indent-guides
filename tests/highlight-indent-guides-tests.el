@@ -1,5 +1,11 @@
 ;;; highlight-indent-guides-tests.el --- regression tests for highlight-indent-guides mode  -*- lexical-binding: t; -*-
 
+;;; Comment
+
+;; When adding tests, suggest to test against modes shipped with Emacs
+;; only. Loading stuff from Melpa for instance might contribute to
+;; complexity of test-setup.
+
 ;;; Code:
 
 (require 'highlight-indent-guides)
