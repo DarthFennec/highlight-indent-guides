@@ -1,4 +1,4 @@
-[![MELPA](https://melpa.org/packages/highlight-indent-guides-badge.svg)](https://melpa.org/#/highlight-indent-guides)
+[![MELPA](https://melpa.org/packages/highlight-indent-guides-badge.svg)](https://melpa.org/#/highlight-indent-guides) [![travis](https://travis-ci.org/DarthFennec/highlight-indent-guides.svg?branch=master)](https://travis-ci.org/DarthFennec/highlight-indent-guides)
 
 highlight-indent-guides.el
 ==========================
