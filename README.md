@@ -221,17 +221,18 @@ function, which determines what your guides will look like. Customize
 - `highlight-indent-guides--bitmap-line`: A guide is a solid vertical line.
 - Or, write your own.
 
-A custom bitmap function takes three parameters:
+A custom bitmap function takes four parameters:
 
 - `width`: The width in pixels of the bitmap.
 - `height`: The height in pixels of the bitmap.
 - `crep`: A character that represents a "filled" or "colored" pixel. This is as
   opposed to an "empty" pixel, which the background color will show through.
+- `zrep`: A character that represents an "empty" pixel.
 
-The function should return a list of strings, representing the pixels
-themselves. The list must contain `height` strings, and each string must contain
-`width` characters, all of which are either `crep` for a colored pixel or `?0`
-for an empty pixel.
+The function should return a list of string lists, representing the pixels
+themselves. The list must contain `height` sublists, and each sublist must
+contain `width` strings, all of which are either `crep` for a colored pixel or
+`zrep` for an empty pixel.
 
 Limitations
 -----------
