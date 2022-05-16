@@ -900,6 +900,19 @@ recursively."
             (unless (> (point) (match-beginning 0)) (forward-char 1))
             (font-lock-apply-highlight (list 0 (list highlight) t))))))))
 
+(defun highlight-indent-guides--color-shift-toward (from to percent)
+  "Produces a hex color that is 'from' shifted towards 'to' by 'percent'"
+  (let* ((p (/ percent 100.0))
+	 (r (nth 0 from))
+	 (g (nth 1 from))
+	 (b (nth 2 from))
+	 (r-step (* (- (nth 0 to) r) p))
+	 (g-step (* (- (nth 1 to) g) p))
+	 (b-step (* (- (nth 2 to) b) p)))
+    (color-rgb-to-hex (+ r r-step)
+		      (+ g g-step)
+		      (+ b b-step))))
+
 ;;;###autoload
 (defun highlight-indent-guides-auto-set-faces ()
   "Automatically calculate indent guide faces.
@@ -928,25 +941,17 @@ This runs whenever a theme is loaded, but it can also be run interactively."
            (tcharp highlight-indent-guides-auto-top-character-face-perc)
            (soddp highlight-indent-guides-auto-stack-odd-face-perc)
            (sevenp highlight-indent-guides-auto-stack-even-face-perc)
-           (scharp highlight-indent-guides-auto-stack-character-face-perc)
-           mod fl bl)
-      (if (not (and fg bg))
-          (unless highlight-indent-guides-suppress-auto-error
-            (message "Error: %s: %s"
-                     "highlight-indent-guides cannot auto set faces"
-                     "`default' face is not set properly"))
-        (setq fl (nth 2 (apply 'color-rgb-to-hsl fg)))
-        (setq bl (nth 2 (apply 'color-rgb-to-hsl bg)))
-        (setq mod (cond ((< fl bl) -1) ((> fl bl) 1) ((< 0.5 bl) -1) (t 1)))
-        (set-face-background oddf (color-lighten-name bk (* mod oddp)))
-        (set-face-background evenf (color-lighten-name bk (* mod evenp)))
-        (set-face-foreground charf (color-lighten-name bk (* mod charp)))
-        (set-face-background toddf (color-lighten-name bk (* mod toddp)))
-        (set-face-background tevenf (color-lighten-name bk (* mod tevenp)))
-        (set-face-foreground tcharf (color-lighten-name bk (* mod tcharp)))
-        (set-face-background soddf (color-lighten-name bk (* mod soddp)))
-        (set-face-background sevenf (color-lighten-name bk (* mod sevenp)))
-        (set-face-foreground scharf (color-lighten-name bk (* mod scharp)))))))
+           (scharp highlight-indent-guides-auto-stack-character-face-perc))
+        (set-face-background oddf (highlight-indent-guides--color-shift-toward bg fg oddp))
+        (set-face-background evenf (highlight-indent-guides--color-shift-toward bg fg evenp))
+        (set-face-foreground charf (highlight-indent-guides--color-shift-toward bg fg charp))
+        (set-face-background toddf (highlight-indent-guides--color-shift-toward bg fg toddp))
+        (set-face-background tevenf (highlight-indent-guides--color-shift-toward bg fg tevenp))
+        (set-face-foreground tcharf (highlight-indent-guides--color-shift-toward bg fg tcharp))
+        (set-face-background soddf (highlight-indent-guides--color-shift-toward bg fg soddp))
+        (set-face-background sevenf (highlight-indent-guides--color-shift-toward bg fg sevenp))
+        (set-face-foreground scharf (highlight-indent-guides--color-shift-toward bg fg scharp)))))
+
 
 (defadvice load-theme (after highlight-indent-guides-auto-set-faces disable)
   "Automatically calculate indent guide faces.
