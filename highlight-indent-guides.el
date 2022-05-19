@@ -952,13 +952,14 @@ This runs whenever a theme is loaded, but it can also be run interactively."
         (set-face-background sevenf (highlight-indent-guides--color-shift-toward bg fg sevenp))
         (set-face-foreground scharf (highlight-indent-guides--color-shift-toward bg fg scharp)))))
 
-
-(defadvice load-theme (after highlight-indent-guides-auto-set-faces disable)
+(defadvice enable-theme (after highlight-indent-guides-auto-set-faces disable)
   "Automatically calculate indent guide faces.
 If this feature is enabled, calculate reasonable values for the indent guide
 colors based on the current theme's colorscheme, and set them appropriately.
 This runs whenever a theme is loaded."
-  (highlight-indent-guides-auto-set-faces))
+  (highlight-indent-guides-auto-set-faces)
+  (highlight-indent-guides--unguide-region (buffer-end -1)(buffer-end 1))
+  (highlight-indent-guides--guide-region (buffer-end -1)(buffer-end 1)))
 
 (defadvice disable-theme (after highlight-indent-guides-auto-set-faces disable)
   "Automatically calculate indent guide faces.
@@ -1004,9 +1005,9 @@ This function is designed to run from the `after-make-frame-functions' hook."
           (unless (daemonp) (highlight-indent-guides-auto-set-faces))
           (add-to-list 'after-make-frame-functions
                        'highlight-indent-guides--auto-set-faces-with-frame)
-          (ad-enable-advice 'load-theme 'after
+          (ad-enable-advice 'enable-theme 'after
                             'highlight-indent-guides-auto-set-faces)
-          (ad-activate 'load-theme)
+          (ad-activate 'enable-theme)
           (ad-enable-advice 'disable-theme 'after
                             'highlight-indent-guides-auto-set-faces)
           (ad-activate 'disable-theme)
@@ -1029,9 +1030,9 @@ This function is designed to run from the `after-make-frame-functions' hook."
       (setq after-make-frame-functions
             (delete 'highlight-indent-guides--auto-set-faces-with-frame
                     after-make-frame-functions))
-      (ad-disable-advice 'load-theme 'after
+      (ad-disable-advice 'enable-theme 'after
                          'highlight-indent-guides-auto-set-faces)
-      (ad-activate 'load-theme)
+      (ad-activate 'enable-theme)
       (ad-disable-advice 'disable-theme 'after
                          'highlight-indent-guides-auto-set-faces)
       (ad-activate 'disable-theme)
