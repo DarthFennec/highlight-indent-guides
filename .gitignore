@@ -2,3 +2,8 @@
 .#*
 \#*\#
 tests/*~
+
+*.elc
+
+/.eask
+/dist
