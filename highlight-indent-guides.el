@@ -22,8 +22,9 @@
 ;;
 ;; Author: DarthFennec <darthfennec@derpymail.org>
 ;; Version: 0.9.2
-;; Package-Requires: ((emacs "24.1"))
+;; Package-Requires: ((emacs "26.1"))
 ;; URL: https://github.com/DarthFennec/highlight-indent-guides
+;; Keywords: convenience
 
 ;;; Commentary:
 ;; This minor mode highlights indentation levels via font-lock.  Indent widths
@@ -166,7 +167,7 @@ function should consistently return the same output given the same input."
 (defcustom highlight-indent-guides-bitmap-function
   'highlight-indent-guides--bitmap-dots
   "Determine the shape of the indent guide bitmap.
-Customizable function which 'draws' the indent guide bitmap.  The function is
+Customizable function which `draws' the indent guide bitmap.  The function is
 called once per indentation character, and takes three parameters: WIDTH and
 HEIGHT are the pixel width and height of the character, and CREP is the
 character that should be used to represent a colored pixel.  The return value is
@@ -255,6 +256,73 @@ This is only useful if `highlight-indent-guides-responsive' is not nil."
 
 (defvar highlight-indent-guides--bitmap-memo (make-hash-table :test 'equal)
   "The memoization cache for bitmap guide data.")
+
+;;;###autoload
+(define-minor-mode highlight-indent-guides-mode
+  "Display indent guides in a buffer."
+  :lighter" h-i-g"
+  :group highlight-indent-guides
+  (let ((fill-method-keywords
+         '((highlight-indent-guides--fill-keyword-matcher
+            0 (highlight-indent-guides--fill-highlighter) t)))
+        (column-method-keywords
+         '((highlight-indent-guides--column-keyword-matcher
+            0 (highlight-indent-guides--column-highlighter) t)))
+        (character-method-keywords
+         '((highlight-indent-guides--column-keyword-matcher
+            0 (highlight-indent-guides--character-highlighter) t)))
+        (bitmap-method-keywords
+         '((highlight-indent-guides--column-keyword-matcher
+            0 (highlight-indent-guides--bitmap-highlighter) t))))
+    (when highlight-indent-guides--idle-timer
+      (cancel-timer highlight-indent-guides--idle-timer)
+      (setq highlight-indent-guides--idle-timer nil))
+    (if highlight-indent-guides-mode
+        (progn
+          ;; set highlight-indent-guides--line-cache so it becomes buffer-local
+          ;; After this, we can destructively modify it just fine, as every
+          ;; buffer has a unique object.
+          (setq highlight-indent-guides--line-cache (list nil nil nil))
+          (unless (daemonp) (highlight-indent-guides-auto-set-faces))
+          (add-to-list 'after-make-frame-functions
+                       'highlight-indent-guides--auto-set-faces-with-frame)
+          (ad-enable-advice 'load-theme 'after
+                            'highlight-indent-guides-auto-set-faces)
+          (ad-activate 'load-theme)
+          (ad-enable-advice 'disable-theme 'after
+                            'highlight-indent-guides-auto-set-faces)
+          (ad-activate 'disable-theme)
+          (add-to-list 'font-lock-extra-managed-props 'display)
+          (add-to-list 'text-property-default-nonsticky
+                       (cons 'highlight-indent-guides-prop t))
+          (setq highlight-indent-guides--idle-timer
+                (run-with-idle-timer
+                 highlight-indent-guides-delay t
+                 'highlight-indent-guides--try-update-line-cache))
+          (font-lock-add-keywords
+           nil
+           (pcase highlight-indent-guides-method
+             (`fill fill-method-keywords)
+             (`column column-method-keywords)
+             (`character character-method-keywords)
+             (`bitmap bitmap-method-keywords))
+           t)
+          (jit-lock-register 'highlight-indent-guides--guide-region))
+      (setq after-make-frame-functions
+            (delete 'highlight-indent-guides--auto-set-faces-with-frame
+                    after-make-frame-functions))
+      (ad-disable-advice 'load-theme 'after
+                         'highlight-indent-guides-auto-set-faces)
+      (ad-activate 'load-theme)
+      (ad-disable-advice 'disable-theme 'after
+                         'highlight-indent-guides-auto-set-faces)
+      (ad-activate 'disable-theme)
+      (font-lock-remove-keywords nil fill-method-keywords)
+      (font-lock-remove-keywords nil column-method-keywords)
+      (font-lock-remove-keywords nil character-method-keywords)
+      (jit-lock-unregister 'highlight-indent-guides--guide-region)
+      (highlight-indent-guides--unguide-region (point-min) (point-max))
+      (font-lock-flush))))
 
 (defun highlight-indent-guides--try-merge-ranges (&rest args)
   "Given multiple character position ranges (ARGS), merge where possible.
@@ -629,10 +697,10 @@ instead of calculating a new one.  Otherwise, calculate a new result by running
 BODY, cache it in PROP, and return it."
   `(let ((cache (nth 4 ,prop)) plist result)
      (if (and (eq ,type (car cache))
-              (setq result (lax-plist-get (cdr cache) ,hlkey)))
+              (setq result (plist-get (cdr cache) ,hlkey)))
          result
        (setq result (progn ,@body))
-       (setq plist (lax-plist-put (cdr cache) ,hlkey result))
+       (setq plist (plist-put (cdr cache) ,hlkey result))
        (setcar (nthcdr 4 ,prop) (cons ,type plist))
        result)))
 
@@ -839,7 +907,7 @@ The image is of dimensions WIDTH and HEIGHT, and color FACE, and generated by
      (concat " " r " " g " " b))))
 
 (defun highlight-indent-guides--bitmap-line (width height crep zrep)
-  "Defines a solid guide line, two pixels wide.
+  "Define a solid guide line, two pixels wide.
 Use WIDTH, HEIGHT, CREP, and ZREP as described in
 `highlight-indent-guides-bitmap-function'."
   (let* ((left (/ (- width 2) 2))
@@ -850,7 +918,7 @@ Use WIDTH, HEIGHT, CREP, and ZREP as described in
       (setq rows (cons row rows)))))
 
 (defun highlight-indent-guides--bitmap-dots (width height crep zrep)
-  "Defines a dotted guide line, with 2x2 pixel dots, and 3 or 4 dots per row.
+  "Define a dotted guide line, with 2x2 pixel dots, and 3 or 4 dots per row.
 Use WIDTH, HEIGHT, CREP, and ZREP as described in
 `highlight-indent-guides-bitmap-function'."
   (let* ((left (/ (- width 2) 2))
@@ -892,8 +960,7 @@ recursively."
                  (`fill 'highlight-indent-guides--fill-highlighter)
                  (`column 'highlight-indent-guides--column-highlighter)
                  (`character 'highlight-indent-guides--character-highlighter)
-                 (`bitmap 'highlight-indent-guides--bitmap-highlighter)))
-              (inhibit-point-motion-hooks t))
+                 (`bitmap 'highlight-indent-guides--bitmap-highlighter))))
           (unless font-lock-dont-widen (widen))
           (goto-char start)
           (while (and (< (point) end) (funcall matcher end))
@@ -971,73 +1038,5 @@ This function is designed to run from the `after-make-frame-functions' hook."
 (make-variable-buffer-local 'font-lock-extra-managed-props)
 (make-variable-buffer-local 'text-property-default-nonsticky)
 
-;;;###autoload
-(define-minor-mode highlight-indent-guides-mode
-  "Display indent guides in a buffer."
-  nil " h-i-g" nil
-  (let ((fill-method-keywords
-         '((highlight-indent-guides--fill-keyword-matcher
-            0 (highlight-indent-guides--fill-highlighter) t)))
-        (column-method-keywords
-         '((highlight-indent-guides--column-keyword-matcher
-            0 (highlight-indent-guides--column-highlighter) t)))
-        (character-method-keywords
-         '((highlight-indent-guides--column-keyword-matcher
-            0 (highlight-indent-guides--character-highlighter) t)))
-        (bitmap-method-keywords
-         '((highlight-indent-guides--column-keyword-matcher
-            0 (highlight-indent-guides--bitmap-highlighter) t))))
-    (when highlight-indent-guides--idle-timer
-      (cancel-timer highlight-indent-guides--idle-timer)
-      (setq highlight-indent-guides--idle-timer nil))
-    (if highlight-indent-guides-mode
-        (progn
-          ;; set highlight-indent-guides--line-cache so it becomes buffer-local
-          ;; After this, we can destructively modify it just fine, as every
-          ;; buffer has a unique object.
-          (setq highlight-indent-guides--line-cache (list nil nil nil))
-          (unless (daemonp) (highlight-indent-guides-auto-set-faces))
-          (add-to-list 'after-make-frame-functions
-                       'highlight-indent-guides--auto-set-faces-with-frame)
-          (ad-enable-advice 'load-theme 'after
-                            'highlight-indent-guides-auto-set-faces)
-          (ad-activate 'load-theme)
-          (ad-enable-advice 'disable-theme 'after
-                            'highlight-indent-guides-auto-set-faces)
-          (ad-activate 'disable-theme)
-          (add-to-list 'font-lock-extra-managed-props 'display)
-          (add-to-list 'text-property-default-nonsticky
-                       (cons 'highlight-indent-guides-prop t))
-          (setq highlight-indent-guides--idle-timer
-                (run-with-idle-timer
-                 highlight-indent-guides-delay t
-                 'highlight-indent-guides--try-update-line-cache))
-          (font-lock-add-keywords
-           nil
-           (pcase highlight-indent-guides-method
-             (`fill fill-method-keywords)
-             (`column column-method-keywords)
-             (`character character-method-keywords)
-             (`bitmap bitmap-method-keywords))
-           t)
-          (jit-lock-register 'highlight-indent-guides--guide-region))
-      (setq after-make-frame-functions
-            (delete 'highlight-indent-guides--auto-set-faces-with-frame
-                    after-make-frame-functions))
-      (ad-disable-advice 'load-theme 'after
-                         'highlight-indent-guides-auto-set-faces)
-      (ad-activate 'load-theme)
-      (ad-disable-advice 'disable-theme 'after
-                         'highlight-indent-guides-auto-set-faces)
-      (ad-activate 'disable-theme)
-      (font-lock-remove-keywords nil fill-method-keywords)
-      (font-lock-remove-keywords nil column-method-keywords)
-      (font-lock-remove-keywords nil character-method-keywords)
-      (jit-lock-unregister 'highlight-indent-guides--guide-region)
-      (highlight-indent-guides--unguide-region (point-min) (point-max))
-      (if (fboundp 'font-lock-flush) (font-lock-flush)
-        (font-lock-fontify-buffer)))))
-
 (provide 'highlight-indent-guides)
-
 ;;; highlight-indent-guides.el ends here
