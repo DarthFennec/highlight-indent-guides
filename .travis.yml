@@ -1,4 +1,0 @@
-language: Emacs Lisp
-
-script:
-  ./run-travis-ci.sh
