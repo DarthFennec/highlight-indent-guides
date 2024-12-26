@@ -118,7 +118,10 @@
 (defcustom highlight-indent-guides-method 'fill
   "Method to use when displaying indent guides.
 This can be `fill', `column', `character', or `bitmap'."
-  :type '(choice (const fill) (const column) (const character) (const bitmap))
+  :type '(choice (const fill)
+                 (const column)
+                 (const character)
+                 (const bitmap))
   :group 'highlight-indent-guides)
 
 (defcustom highlight-indent-guides-responsive nil
@@ -286,12 +289,6 @@ This is only useful if `highlight-indent-guides-responsive' is not nil."
           (unless (daemonp) (highlight-indent-guides-auto-set-faces))
           (add-to-list 'after-make-frame-functions
                        'highlight-indent-guides--auto-set-faces-with-frame)
-          (ad-enable-advice 'load-theme 'after
-                            'highlight-indent-guides-auto-set-faces)
-          (ad-activate 'load-theme)
-          (ad-enable-advice 'disable-theme 'after
-                            'highlight-indent-guides-auto-set-faces)
-          (ad-activate 'disable-theme)
           (add-to-list 'font-lock-extra-managed-props 'display)
           (add-to-list 'text-property-default-nonsticky
                        (cons 'highlight-indent-guides-prop t))
@@ -311,12 +308,6 @@ This is only useful if `highlight-indent-guides-responsive' is not nil."
       (setq after-make-frame-functions
             (delete 'highlight-indent-guides--auto-set-faces-with-frame
                     after-make-frame-functions))
-      (ad-disable-advice 'load-theme 'after
-                         'highlight-indent-guides-auto-set-faces)
-      (ad-activate 'load-theme)
-      (ad-disable-advice 'disable-theme 'after
-                         'highlight-indent-guides-auto-set-faces)
-      (ad-activate 'disable-theme)
       (font-lock-remove-keywords nil fill-method-keywords)
       (font-lock-remove-keywords nil column-method-keywords)
       (font-lock-remove-keywords nil character-method-keywords)
@@ -970,7 +961,7 @@ recursively."
             (font-lock-apply-highlight (list 0 (list highlight) t))))))))
 
 ;;;###autoload
-(defun highlight-indent-guides-auto-set-faces ()
+(defun highlight-indent-guides-auto-set-faces (&rest _)
   "Automatically calculate indent guide faces.
 If this feature is enabled, calculate reasonable values for the indent guide
 colors based on the current theme's colorscheme, and set them appropriately.
