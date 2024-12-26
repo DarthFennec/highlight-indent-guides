@@ -654,7 +654,8 @@ This is meant to be used as a `font-lock-keywords' matcher."
          (prop 'highlight-indent-guides-prop)
          (propval (get-text-property pos prop)))
     (while (and (not (and (natnump (car propval))
-                          (or (nth 2 propval) (nth 1 propval)))) (< pos limit))
+                          (or (nth 2 propval) (nth 1 propval))))
+                (< pos limit))
       (setq pos (1+ pos))
       (setq propval (get-text-property pos prop))
       (while (and (< pos limit) (not (natnump (car propval))))
@@ -934,9 +935,10 @@ Use WIDTH, HEIGHT, CREP, and ZREP as described in
         (setq space space4 space1 space41)
       (setq space space3 space1 space31))
     (dotimes (i height rows)
-      (if (let ((x (mod (- i space1) space))) (or (eq x 0) (eq x 1)))
-          (setq rows (cons row1 rows))
-        (setq rows (cons row2 rows))))))
+      (let ((x (mod (- i space1) space)))
+        (if (or (eq x 0) (eq x 1))
+            (setq rows (cons row1 rows))
+          (setq rows (cons row2 rows)))))))
 
 (defun highlight-indent-guides--overdraw (start end)
   "Overdraw the guides in the region from START to END.
@@ -1015,19 +1017,16 @@ This runs whenever a theme is loaded, but it can also be run interactively."
         (set-face-background sevenf (color-lighten-name bk (* mod sevenp)))
         (set-face-foreground scharf (color-lighten-name bk (* mod scharp)))))))
 
-(defadvice load-theme (after highlight-indent-guides-auto-set-faces disable)
-  "Automatically calculate indent guide faces.
-If this feature is enabled, calculate reasonable values for the indent guide
-colors based on the current theme's colorscheme, and set them appropriately.
-This runs whenever a theme is loaded."
-  (highlight-indent-guides-auto-set-faces))
-
-(defadvice disable-theme (after highlight-indent-guides-auto-set-faces disable)
-  "Automatically calculate indent guide faces.
-If this feature is enabled, calculate reasonable values for the indent guide
-colors based on the current theme's colorscheme, and set them appropriately.
-This runs whenever a theme is disabled."
-  (highlight-indent-guides-auto-set-faces))
+;; Automatically calculate indent guide faces.
+;; If this feature is enabled, calculate reasonable values for the indent guide
+;; colors based on the current theme's colorscheme, and set them appropriately.
+;; This runs whenever a theme is loaded.
+(advice-add 'load-theme :after #'highlight-indent-guides-auto-set-faces)
+;; Automatically calculate indent guide faces.
+;; If this feature is enabled, calculate reasonable values for the indent guide
+;; colors based on the current theme's colorscheme, and set them appropriately.
+;; This runs whenever a theme is disabled.
+(advice-add 'disable-theme :after #'highlight-indent-guides-auto-set-faces)
 
 (defun highlight-indent-guides--auto-set-faces-with-frame (frame)
   "Run `highlight-indent-guides-auto-set-faces' in frame FRAME.
