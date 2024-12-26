@@ -1,4 +1,5 @@
 [![MELPA](https://melpa.org/packages/highlight-indent-guides-badge.svg)](https://melpa.org/#/highlight-indent-guides) [![travis](https://travis-ci.org/DarthFennec/highlight-indent-guides.svg?branch=master)](https://travis-ci.org/DarthFennec/highlight-indent-guides)
+[![JCS-ELPA](https://raw.githubusercontent.com/jcs-emacs/badges/master/elpa/v/highlight-indent-guides.svg)](https://jcs-emacs.github.io/jcs-elpa/#/highlight-indent-guides)
 
 highlight-indent-guides.el
 ==========================
