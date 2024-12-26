@@ -1,4 +1,4 @@
-;;; highlight-indent-guides.el --- Minor mode to highlight indentation
+;;; highlight-indent-guides.el --- Minor mode to highlight indentation  -*- lexical-binding: t; -*-
 ;;
 ;; Copyright (c) 2015 DarthFennec
 ;;
@@ -550,7 +550,7 @@ updated to match."
           (if (or (let ((s (syntax-ppss))) (or (nth 3 s) (nth 4 s)))
                   (looking-at "[[:space:]]*$"))
               (setq chunk (cons (list (point)) chunk))
-            (let ((tmpguides (cdr guides)) ends currend)
+            (let ((tmpguides (cdr guides)) ends)
               (while tmpguides
                 (when (car tmpguides)
                   (setq ends (cons (marker-position (cdar tmpguides)) ends)))
@@ -713,7 +713,7 @@ The guide's data is given as PROP."
           (cacheseg (nth 2 highlight-indent-guides--line-cache))
           (isstack (eq highlight-indent-guides-responsive 'stack))
           result)
-      (dotimes (segnum segct result)
+      (dotimes (_ segct result)
         (cond ((equal cacheseg currseg)
                (setq result (cons 'top result)))
               ((and isstack (highlight-indent-guides--iscdr currseg cacheseg))
@@ -914,7 +914,7 @@ Use WIDTH, HEIGHT, CREP, and ZREP as described in
          (right (- width left 2))
          (row (append (make-list left zrep) (make-list 2 crep) (make-list right zrep)))
          rows)
-    (dotimes (i height rows)
+    (dotimes (_ height rows)
       (setq rows (cons row rows)))))
 
 (defun highlight-indent-guides--bitmap-dots (width height crep zrep)
