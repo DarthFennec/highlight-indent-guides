@@ -1012,12 +1012,14 @@ This runs whenever a theme is loaded, but it can also be run interactively."
 ;; If this feature is enabled, calculate reasonable values for the indent guide
 ;; colors based on the current theme's colorscheme, and set them appropriately.
 ;; This runs whenever a theme is loaded.
-(advice-add 'load-theme :after #'highlight-indent-guides-auto-set-faces)
+(advice-add 'load-theme :after (lambda (&rest _)
+                                 (highlight-indent-guides-auto-set-faces)))
 ;; Automatically calculate indent guide faces.
 ;; If this feature is enabled, calculate reasonable values for the indent guide
 ;; colors based on the current theme's colorscheme, and set them appropriately.
 ;; This runs whenever a theme is disabled.
-(advice-add 'disable-theme :after #'highlight-indent-guides-auto-set-faces)
+(advice-add 'disable-theme :after (lambda (&rest _)
+                                    (highlight-indent-guides-auto-set-faces)))
 
 (defun highlight-indent-guides--auto-set-faces-with-frame (frame)
   "Run `highlight-indent-guides-auto-set-faces' in frame FRAME.
