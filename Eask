@@ -1,3 +1,5 @@
+;; -*- mode: eask; lexical-binding: t -*-
+
 (package "highlight-indent-guides"
          "0.9.2"
          "Minor mode to highlight indentation")
