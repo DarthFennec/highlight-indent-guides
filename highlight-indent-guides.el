@@ -781,18 +781,35 @@ used as a `font-lock-keywords' face definition."
                (setq showstr
                      (char-to-string highlight-indent-guides-character)))
              `(face ,face display ,showstr))
-         (setq showstr (make-string cwidth ?\s))
-         (when starter
-           (setq face (funcall highlighter facep (pop shouldhl) 'character))
-           (when face
-             (aset showstr 0 highlight-indent-guides-character)
-             (add-text-properties 0 1 `(face ,face) showstr)))
-         (dolist (seg segs)
-           (setq face (funcall highlighter facep (pop shouldhl) 'character))
-           (when face
-             (aset showstr seg highlight-indent-guides-character)
-             (add-text-properties seg (1+ seg) `(face ,face) showstr))
-           (setq facep (1+ facep)))
+         ;; Build string from character list to avoid multibyte issues
+         (let ((chars (make-list cwidth ?\s)))
+           (when starter
+             (setq face (funcall highlighter facep (pop shouldhl) 'character))
+             (when face
+               (setcar chars highlight-indent-guides-character)))
+           (dolist (seg segs)
+             (setq face (funcall highlighter facep (pop shouldhl) 'character))
+             (when face
+               (setcar (nthcdr seg chars) highlight-indent-guides-character))
+             (setq facep (1+ facep)))
+           ;; Create string using apply - this handles multibyte correctly
+           (setq showstr (apply 'string chars)))
+         ;; Now add text properties to the complete string
+         (let ((idx 0)
+               (facep-copy (car prop))
+               (shouldhl-copy shouldhl))
+           (when starter
+             (setq face (funcall highlighter facep-copy (car shouldhl-copy) 'character))
+             (when face
+               (add-text-properties 0 1 `(face ,face) showstr))
+             (setq facep-copy (1+ facep-copy))
+             (setq shouldhl-copy (cdr shouldhl-copy)))
+           (dolist (seg segs)
+             (setq face (funcall highlighter facep-copy (car shouldhl-copy) 'character))
+             (when face
+               (add-text-properties seg (1+ seg) `(face ,face) showstr))
+             (setq facep-copy (1+ facep-copy))
+             (setq shouldhl-copy (cdr shouldhl-copy))))
          `(face nil display ,showstr))))))
 
 (defmacro highlight-indent-guides--memoize-bitmap (idx &rest body)
