@@ -1,17 +1,17 @@
 ;;; highlight-indent-guides.el --- Minor mode to highlight indentation  -*- lexical-binding: t; -*-
-;;
+
 ;; Copyright (c) 2015 DarthFennec
-;;
+
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;; of this software and associated documentation files (the "Software"), to deal
 ;; in the Software without restriction, including without limitation the rights
 ;; to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 ;; copies of the Software, and to permit persons to whom the Software is
 ;; furnished to do so, subject to the following conditions:
-;;
+
 ;; The above copyright notice and this permission notice shall be included in
 ;; all copies or substantial portions of the Software.
-;;
+
 ;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 ;; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 ;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -19,14 +19,16 @@
 ;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 ;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ;; SOFTWARE.
-;;
+
 ;; Author: DarthFennec <darthfennec@derpymail.org>
+;; Maintainer: Jen-Chieh Shen <jcs090218@gmail.com>
 ;; Version: 0.9.2
 ;; Package-Requires: ((emacs "26.1"))
 ;; URL: https://github.com/DarthFennec/highlight-indent-guides
 ;; Keywords: convenience
 
 ;;; Commentary:
+;;
 ;; This minor mode highlights indentation levels via font-lock.  Indent widths
 ;; are dynamically discovered, which means this correctly highlights in any
 ;; mode, regardless of indent width, even in languages with non-uniform
@@ -260,60 +262,75 @@ This is only useful if `highlight-indent-guides-responsive' is not nil."
 (defvar highlight-indent-guides--bitmap-memo (make-hash-table :test 'equal)
   "The memoization cache for bitmap guide data.")
 
+(defmacro highlight-indent-guides--prepare (&rest body)
+  "Execute BODY with variables setup."
+  (declare (indent 0) (debug t))
+  `(let ((fill-method-keywords
+          '((highlight-indent-guides--fill-keyword-matcher
+             0 (highlight-indent-guides--fill-highlighter) t)))
+         (column-method-keywords
+          '((highlight-indent-guides--column-keyword-matcher
+             0 (highlight-indent-guides--column-highlighter) t)))
+         (character-method-keywords
+          '((highlight-indent-guides--column-keyword-matcher
+             0 (highlight-indent-guides--character-highlighter) t)))
+         (bitmap-method-keywords
+          '((highlight-indent-guides--column-keyword-matcher
+             0 (highlight-indent-guides--bitmap-highlighter) t))))
+     ,@body))
+
+(defun highlight-indent-guides--enable ()
+  "Enable `highlight-indent-guides'."
+  (highlight-indent-guides--prepare
+    ;; set highlight-indent-guides--line-cache so it becomes buffer-local
+    ;; After this, we can destructively modify it just fine, as every
+    ;; buffer has a unique object.
+    (setq highlight-indent-guides--line-cache (list nil nil nil))
+    (unless (daemonp) (highlight-indent-guides-auto-set-faces))
+    (add-to-list 'after-make-frame-functions
+                 'highlight-indent-guides--auto-set-faces-with-frame)
+    (add-to-list 'font-lock-extra-managed-props 'display)
+    (add-to-list 'text-property-default-nonsticky
+                 (cons 'highlight-indent-guides-prop t))
+    (setq highlight-indent-guides--idle-timer
+          (run-with-idle-timer
+           highlight-indent-guides-delay t
+           'highlight-indent-guides--try-update-line-cache))
+    (font-lock-add-keywords
+     nil
+     (pcase highlight-indent-guides-method
+       (`fill      fill-method-keywords)
+       (`column    column-method-keywords)
+       (`character character-method-keywords)
+       (`bitmap    bitmap-method-keywords))
+     t)
+    (jit-lock-register 'highlight-indent-guides--guide-region)))
+
+(defun highlight-indent-guides--disable ()
+  "Disable `highlight-indent-guides'."
+  (highlight-indent-guides--prepare
+    (setq after-make-frame-functions
+          (delete 'highlight-indent-guides--auto-set-faces-with-frame
+                  after-make-frame-functions))
+    (font-lock-remove-keywords nil fill-method-keywords)
+    (font-lock-remove-keywords nil column-method-keywords)
+    (font-lock-remove-keywords nil character-method-keywords)
+    (font-lock-remove-keywords nil bitmap-method-keywords)
+    (jit-lock-unregister 'highlight-indent-guides--guide-region)
+    (highlight-indent-guides--unguide-region (point-min) (point-max))
+    (font-lock-flush)))
+
 ;;;###autoload
 (define-minor-mode highlight-indent-guides-mode
   "Display indent guides in a buffer."
   :lighter" h-i-g"
   :group highlight-indent-guides
-  (let ((fill-method-keywords
-         '((highlight-indent-guides--fill-keyword-matcher
-            0 (highlight-indent-guides--fill-highlighter) t)))
-        (column-method-keywords
-         '((highlight-indent-guides--column-keyword-matcher
-            0 (highlight-indent-guides--column-highlighter) t)))
-        (character-method-keywords
-         '((highlight-indent-guides--column-keyword-matcher
-            0 (highlight-indent-guides--character-highlighter) t)))
-        (bitmap-method-keywords
-         '((highlight-indent-guides--column-keyword-matcher
-            0 (highlight-indent-guides--bitmap-highlighter) t))))
-    (when highlight-indent-guides--idle-timer
-      (cancel-timer highlight-indent-guides--idle-timer)
-      (setq highlight-indent-guides--idle-timer nil))
-    (if highlight-indent-guides-mode
-        (progn
-          ;; set highlight-indent-guides--line-cache so it becomes buffer-local
-          ;; After this, we can destructively modify it just fine, as every
-          ;; buffer has a unique object.
-          (setq highlight-indent-guides--line-cache (list nil nil nil))
-          (unless (daemonp) (highlight-indent-guides-auto-set-faces))
-          (add-to-list 'after-make-frame-functions
-                       'highlight-indent-guides--auto-set-faces-with-frame)
-          (add-to-list 'font-lock-extra-managed-props 'display)
-          (add-to-list 'text-property-default-nonsticky
-                       (cons 'highlight-indent-guides-prop t))
-          (setq highlight-indent-guides--idle-timer
-                (run-with-idle-timer
-                 highlight-indent-guides-delay t
-                 'highlight-indent-guides--try-update-line-cache))
-          (font-lock-add-keywords
-           nil
-           (pcase highlight-indent-guides-method
-             (`fill fill-method-keywords)
-             (`column column-method-keywords)
-             (`character character-method-keywords)
-             (`bitmap bitmap-method-keywords))
-           t)
-          (jit-lock-register 'highlight-indent-guides--guide-region))
-      (setq after-make-frame-functions
-            (delete 'highlight-indent-guides--auto-set-faces-with-frame
-                    after-make-frame-functions))
-      (font-lock-remove-keywords nil fill-method-keywords)
-      (font-lock-remove-keywords nil column-method-keywords)
-      (font-lock-remove-keywords nil character-method-keywords)
-      (jit-lock-unregister 'highlight-indent-guides--guide-region)
-      (highlight-indent-guides--unguide-region (point-min) (point-max))
-      (font-lock-flush))))
+  (when highlight-indent-guides--idle-timer
+    (cancel-timer highlight-indent-guides--idle-timer)
+    (setq highlight-indent-guides--idle-timer nil))
+  (if highlight-indent-guides-mode
+      (highlight-indent-guides--enable)
+    (highlight-indent-guides--disable)))
 
 (defun highlight-indent-guides--try-merge-ranges (&rest args)
   "Given multiple character position ranges (ARGS), merge where possible.
@@ -781,35 +798,25 @@ used as a `font-lock-keywords' face definition."
                (setq showstr
                      (char-to-string highlight-indent-guides-character)))
              `(face ,face display ,showstr))
-         ;; Build string from character list to avoid multibyte issues
-         (let ((chars (make-list cwidth ?\s)))
-           (when starter
-             (setq face (funcall highlighter facep (pop shouldhl) 'character))
-             (when face
-               (setcar chars highlight-indent-guides-character)))
-           (dolist (seg segs)
-             (setq face (funcall highlighter facep (pop shouldhl) 'character))
-             (when face
-               (setcar (nthcdr seg chars) highlight-indent-guides-character))
-             (setq facep (1+ facep)))
-           ;; Create string using apply - this handles multibyte correctly
-           (setq showstr (apply 'string chars)))
-         ;; Now add text properties to the complete string
-         (let ((idx 0)
-               (facep-copy (car prop))
-               (shouldhl-copy shouldhl))
-           (when starter
-             (setq face (funcall highlighter facep-copy (car shouldhl-copy) 'character))
-             (when face
-               (add-text-properties 0 1 `(face ,face) showstr))
-             (setq facep-copy (1+ facep-copy))
-             (setq shouldhl-copy (cdr shouldhl-copy)))
-           (dolist (seg segs)
-             (setq face (funcall highlighter facep-copy (car shouldhl-copy) 'character))
-             (when face
-               (add-text-properties seg (1+ seg) `(face ,face) showstr))
-             (setq facep-copy (1+ facep-copy))
-             (setq shouldhl-copy (cdr shouldhl-copy))))
+          ;; Build string from vector to avoid multibyte issues with aset on strings
+          (let ((char-vector (make-vector cwidth ?\s))
+                (props nil))
+            (when starter
+              (setq face (funcall highlighter facep (pop shouldhl) 'character))
+              (when face
+                (aset char-vector 0 highlight-indent-guides-character)
+                (push (list 0 1 `(face ,face)) props)))
+            (dolist (seg segs)
+              (setq face (funcall highlighter facep (pop shouldhl) 'character))
+              (when face
+                (aset char-vector seg highlight-indent-guides-character)
+                (push (list seg (1+ seg) `(face ,face)) props))
+              (setq facep (1+ facep)))
+            ;; Convert vector to string - concat handles multibyte correctly
+            (setq showstr (concat char-vector))
+            ;; Apply collected text properties
+            (dolist (p props)
+              (add-text-properties (car p) (cadr p) (caddr p) showstr)))
          `(face nil display ,showstr))))))
 
 (defmacro highlight-indent-guides--memoize-bitmap (idx &rest body)
@@ -961,16 +968,16 @@ recursively."
       (save-restriction
         (let ((matcher
                (pcase highlight-indent-guides-method
-                 (`fill 'highlight-indent-guides--fill-keyword-matcher)
-                 (`column 'highlight-indent-guides--column-keyword-matcher)
+                 (`fill      'highlight-indent-guides--fill-keyword-matcher)
+                 (`column    'highlight-indent-guides--column-keyword-matcher)
                  (`character 'highlight-indent-guides--column-keyword-matcher)
-                 (`bitmap 'highlight-indent-guides--column-keyword-matcher)))
+                 (`bitmap    'highlight-indent-guides--column-keyword-matcher)))
               (highlight
                (pcase highlight-indent-guides-method
-                 (`fill 'highlight-indent-guides--fill-highlighter)
-                 (`column 'highlight-indent-guides--column-highlighter)
+                 (`fill      'highlight-indent-guides--fill-highlighter)
+                 (`column    'highlight-indent-guides--column-highlighter)
                  (`character 'highlight-indent-guides--character-highlighter)
-                 (`bitmap 'highlight-indent-guides--bitmap-highlighter))))
+                 (`bitmap    'highlight-indent-guides--bitmap-highlighter))))
           (unless font-lock-dont-widen (widen))
           (goto-char start)
           (while (and (< (point) end) (funcall matcher end))
@@ -985,25 +992,25 @@ colors based on the current theme's colorscheme, and set them appropriately.
 This runs whenever a theme is loaded, but it can also be run interactively."
   (interactive)
   (when highlight-indent-guides-auto-enabled
-    (let* ((bk (face-background 'default nil 'default))
-           (fg (color-name-to-rgb (face-foreground 'default nil 'default)))
-           (bg (color-name-to-rgb bk))
-           (oddf 'highlight-indent-guides-odd-face)
-           (evenf 'highlight-indent-guides-even-face)
-           (charf 'highlight-indent-guides-character-face)
-           (toddf 'highlight-indent-guides-top-odd-face)
+    (let* ((bk     (face-background 'default nil 'default))
+           (fg     (color-name-to-rgb (face-foreground 'default nil 'default)))
+           (bg     (color-name-to-rgb bk))
+           (oddf   'highlight-indent-guides-odd-face)
+           (evenf  'highlight-indent-guides-even-face)
+           (charf  'highlight-indent-guides-character-face)
+           (toddf  'highlight-indent-guides-top-odd-face)
            (tevenf 'highlight-indent-guides-top-even-face)
            (tcharf 'highlight-indent-guides-top-character-face)
-           (soddf 'highlight-indent-guides-stack-odd-face)
+           (soddf  'highlight-indent-guides-stack-odd-face)
            (sevenf 'highlight-indent-guides-stack-even-face)
            (scharf 'highlight-indent-guides-stack-character-face)
-           (oddp highlight-indent-guides-auto-odd-face-perc)
-           (evenp highlight-indent-guides-auto-even-face-perc)
-           (charp highlight-indent-guides-auto-character-face-perc)
-           (toddp highlight-indent-guides-auto-top-odd-face-perc)
+           (oddp   highlight-indent-guides-auto-odd-face-perc)
+           (evenp  highlight-indent-guides-auto-even-face-perc)
+           (charp  highlight-indent-guides-auto-character-face-perc)
+           (toddp  highlight-indent-guides-auto-top-odd-face-perc)
            (tevenp highlight-indent-guides-auto-top-even-face-perc)
            (tcharp highlight-indent-guides-auto-top-character-face-perc)
-           (soddp highlight-indent-guides-auto-stack-odd-face-perc)
+           (soddp  highlight-indent-guides-auto-stack-odd-face-perc)
            (sevenp highlight-indent-guides-auto-stack-even-face-perc)
            (scharp highlight-indent-guides-auto-stack-character-face-perc)
            mod fl bl)
@@ -1015,13 +1022,13 @@ This runs whenever a theme is loaded, but it can also be run interactively."
         (setq fl (nth 2 (apply 'color-rgb-to-hsl fg)))
         (setq bl (nth 2 (apply 'color-rgb-to-hsl bg)))
         (setq mod (cond ((< fl bl) -1) ((> fl bl) 1) ((< 0.5 bl) -1) (t 1)))
-        (set-face-background oddf (color-lighten-name bk (* mod oddp)))
-        (set-face-background evenf (color-lighten-name bk (* mod evenp)))
-        (set-face-foreground charf (color-lighten-name bk (* mod charp)))
-        (set-face-background toddf (color-lighten-name bk (* mod toddp)))
+        (set-face-background oddf   (color-lighten-name bk (* mod oddp)))
+        (set-face-background evenf  (color-lighten-name bk (* mod evenp)))
+        (set-face-foreground charf  (color-lighten-name bk (* mod charp)))
+        (set-face-background toddf  (color-lighten-name bk (* mod toddp)))
         (set-face-background tevenf (color-lighten-name bk (* mod tevenp)))
         (set-face-foreground tcharf (color-lighten-name bk (* mod tcharp)))
-        (set-face-background soddf (color-lighten-name bk (* mod soddp)))
+        (set-face-background soddf  (color-lighten-name bk (* mod soddp)))
         (set-face-background sevenf (color-lighten-name bk (* mod sevenp)))
         (set-face-foreground scharf (color-lighten-name bk (* mod scharp)))))))
 
