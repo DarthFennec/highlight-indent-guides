@@ -798,18 +798,25 @@ used as a `font-lock-keywords' face definition."
                (setq showstr
                      (char-to-string highlight-indent-guides-character)))
              `(face ,face display ,showstr))
-         (setq showstr (make-string cwidth ?\s))
-         (when starter
-           (setq face (funcall highlighter facep (pop shouldhl) 'character))
-           (when face
-             (aset showstr 0 highlight-indent-guides-character)
-             (add-text-properties 0 1 `(face ,face) showstr)))
-         (dolist (seg segs)
-           (setq face (funcall highlighter facep (pop shouldhl) 'character))
-           (when face
-             (aset showstr seg highlight-indent-guides-character)
-             (add-text-properties seg (1+ seg) `(face ,face) showstr))
-           (setq facep (1+ facep)))
+          ;; Build string from vector to avoid multibyte issues with aset on strings
+          (let ((char-vector (make-vector cwidth ?\s))
+                (props nil))
+            (when starter
+              (setq face (funcall highlighter facep (pop shouldhl) 'character))
+              (when face
+                (aset char-vector 0 highlight-indent-guides-character)
+                (push (list 0 1 `(face ,face)) props)))
+            (dolist (seg segs)
+              (setq face (funcall highlighter facep (pop shouldhl) 'character))
+              (when face
+                (aset char-vector seg highlight-indent-guides-character)
+                (push (list seg (1+ seg) `(face ,face)) props))
+              (setq facep (1+ facep)))
+            ;; Convert vector to string - concat handles multibyte correctly
+            (setq showstr (concat char-vector))
+            ;; Apply collected text properties
+            (dolist (p props)
+              (add-text-properties (car p) (cadr p) (caddr p) showstr)))
          `(face nil display ,showstr))))))
 
 (defmacro highlight-indent-guides--memoize-bitmap (idx &rest body)
